@@ -14,4 +14,8 @@ export const env = {
     .split(",")
     .map((o) => o.trim())
     .filter(Boolean),
+  // Supabase project URL, e.g. https://<ref>.supabase.co — used to verify
+  // auth JWTs against the project's JWKS. Empty disables auth (all protected
+  // routes return 401).
+  SUPABASE_URL: (process.env.SUPABASE_URL ?? "").replace(/\/$/, ""),
 } as const;

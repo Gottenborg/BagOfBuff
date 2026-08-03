@@ -15,12 +15,75 @@
         "operationId": "getHealth"
       }
     },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get the current authenticated user",
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "email",
+                    "isAdmin"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "isAdmin": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getAuthMe"
+      }
+    },
     "/products/": {
       "get": {
         "tags": [
           "Products"
         ],
-        "summary": "List products (active only unless includeInactive)",
+        "summary": "List products (active only; drafts included for admins)",
         "parameters": [
           {
             "name": "includeInactive",
@@ -74,13 +137,13 @@
                         ]
                       },
                       "priceCents": {
-                        "type": "integer"
+                        "type": "number"
                       },
                       "currency": {
                         "type": "string"
                       },
                       "stock": {
-                        "type": "integer"
+                        "type": "number"
                       },
                       "active": {
                         "type": "boolean"
@@ -354,13 +417,13 @@
                       ]
                     },
                     "priceCents": {
-                      "type": "integer"
+                      "type": "number"
                     },
                     "currency": {
                       "type": "string"
                     },
                     "stock": {
-                      "type": "integer"
+                      "type": "number"
                     },
                     "active": {
                       "type": "boolean"
@@ -371,6 +434,42 @@
                     },
                     "updatedAt": {
                       "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Response for status 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
                       "type": "string"
                     }
                   }
@@ -457,13 +556,13 @@
                       ]
                     },
                     "priceCents": {
-                      "type": "integer"
+                      "type": "number"
                     },
                     "currency": {
                       "type": "string"
                     },
                     "stock": {
-                      "type": "integer"
+                      "type": "number"
                     },
                     "active": {
                       "type": "boolean"
@@ -751,13 +850,13 @@
                       ]
                     },
                     "priceCents": {
-                      "type": "integer"
+                      "type": "number"
                     },
                     "currency": {
                       "type": "string"
                     },
                     "stock": {
-                      "type": "integer"
+                      "type": "number"
                     },
                     "active": {
                       "type": "boolean"
@@ -768,6 +867,42 @@
                     },
                     "updatedAt": {
                       "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Response for status 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
                       "type": "string"
                     }
                   }
@@ -870,13 +1005,13 @@
                       ]
                     },
                     "priceCents": {
-                      "type": "integer"
+                      "type": "number"
                     },
                     "currency": {
                       "type": "string"
                     },
                     "stock": {
-                      "type": "integer"
+                      "type": "number"
                     },
                     "active": {
                       "type": "boolean"
@@ -887,6 +1022,42 @@
                     },
                     "updatedAt": {
                       "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Response for status 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
                       "type": "string"
                     }
                   }

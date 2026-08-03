@@ -79,6 +79,21 @@ bun run --filter @repo/api db:seed       # seed the launch product (idempotent)
 The initial migration (`apps/api/drizzle/0000_*.sql`) is committed, so
 `db:migrate` is all that's needed on a fresh database.
 
+### Authentication
+
+The API verifies Supabase Auth JWTs against the project's JWKS (set
+`SUPABASE_URL` in `apps/api/.env`). Authorization for the back office lives in
+our own `admins` table (keyed by Supabase user id), so it stays portable.
+
+To grant admin access, add the user's Supabase id to `admins`:
+
+```sql
+insert into admins (user_id, email) values ('<supabase-user-uuid>', '<email>');
+```
+
+Protected product write routes (`POST/PATCH/DELETE /products`) require an admin
+bearer token; `GET /auth/me` returns the current user and whether they're an admin.
+
 ## Deployment
 
 Both server apps deploy to Fly.io from the repo root:

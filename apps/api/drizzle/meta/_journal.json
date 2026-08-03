@@ -15,6 +15,13 @@
       "when": 1785791785061,
       "tag": "0001_tan_blindfold",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785793039987,
+      "tag": "0002_sticky_riptide",
+      "breakpoints": true
     }
   ]
 }

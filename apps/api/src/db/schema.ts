@@ -39,3 +39,18 @@ export const products = pgTable("products", {
 
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
+
+/**
+ * Back-office administrators. Keyed by the Supabase Auth user id (a UUID,
+ * stored as text). Authorization lives in our own database rather than in
+ * Supabase custom claims, so it stays portable if we ever leave Supabase Auth.
+ */
+export const admins = pgTable("admins", {
+  userId: text("user_id").primaryKey(),
+  email: text("email"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+}).enableRLS();
+
+export type Admin = typeof admins.$inferSelect;

@@ -2,14 +2,19 @@ import { eq } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { db } from "../../db";
 import { products, type Product } from "../../db/schema";
+import { authPlugin, isAdmin } from "../auth/auth.plugin";
+
+const Unauthorized = t.Object({ message: t.String() });
+const Forbidden = t.Object({ message: t.String() });
 
 /**
- * A plain integer schema. Elysia's `t.Integer()` emits a coercible
- * string-or-integer union in OpenAPI (meant for inputs), which leaks into the
- * generated client as `string | number`; for response bodies we want a clean
- * `number`, so we declare the JSON Schema directly.
+ * Plain number schema for response bodies. `t.Integer()` emits a coercible
+ * string-or-integer union in OpenAPI (leaking into the client as
+ * `string | number`), and `t.Unsafe({type:"integer"})` is not compilable by
+ * Elysia's response validator. `t.Number()` compiles cleanly and generates a
+ * plain `number` in the typed client — the JSON wire type is the same.
  */
-const Int = t.Unsafe<number>({ type: "integer" });
+const Int = t.Number();
 
 /**
  * OpenAPI response model. Timestamps are serialized to ISO strings (see
@@ -76,20 +81,28 @@ export const productsRoutes = new Elysia({
   prefix: "/products",
   tags: ["Products"],
 })
+  .use(authPlugin)
   // --- Public reads -------------------------------------------------------
   .get(
     "/",
-    async ({ query }) => {
-      const rows = query.includeInactive
+    async ({ query, user }) => {
+      // `includeInactive` (drafts) is honoured only for admins; anonymous or
+      // non-admin callers always get active products.
+      const showAll =
+        query.includeInactive === true &&
+        user !== null &&
+        (await isAdmin(user.id));
+      const rows = showAll
         ? await db.select().from(products)
         : await db.select().from(products).where(eq(products.active, true));
       return rows.map(serialize);
     },
     {
-      // `includeInactive` returns drafts too; it must be admin-gated (BAG-12).
       query: t.Object({ includeInactive: t.Optional(t.Boolean()) }),
       response: { 200: t.Array(ProductModel) },
-      detail: { summary: "List products (active only unless includeInactive)" },
+      detail: {
+        summary: "List products (active only; drafts included for admins)",
+      },
     },
   )
   .get(
@@ -127,9 +140,16 @@ export const productsRoutes = new Elysia({
       }
     },
     {
+      beforeHandle: async ({ user, status }) => {
+        if (!user) return status(401, { message: "Unauthorized" });
+        if (!(await isAdmin(user.id)))
+          return status(403, { message: "Forbidden" });
+      },
       body: CreateProductBody,
       response: {
         201: ProductModel,
+        401: Unauthorized,
+        403: Forbidden,
         409: t.Object({ message: t.String() }),
       },
       detail: { summary: "Create a product (admin)" },
@@ -154,10 +174,17 @@ export const productsRoutes = new Elysia({
       }
     },
     {
+      beforeHandle: async ({ user, status }) => {
+        if (!user) return status(401, { message: "Unauthorized" });
+        if (!(await isAdmin(user.id)))
+          return status(403, { message: "Forbidden" });
+      },
       params: t.Object({ id: t.String() }),
       body: UpdateProductBody,
       response: {
         200: ProductModel,
+        401: Unauthorized,
+        403: Forbidden,
         404: NotFound,
         409: t.Object({ message: t.String() }),
       },
@@ -178,8 +205,18 @@ export const productsRoutes = new Elysia({
       return serialize(archived);
     },
     {
+      beforeHandle: async ({ user, status }) => {
+        if (!user) return status(401, { message: "Unauthorized" });
+        if (!(await isAdmin(user.id)))
+          return status(403, { message: "Forbidden" });
+      },
       params: t.Object({ id: t.String() }),
-      response: { 200: ProductModel, 404: NotFound },
+      response: {
+        200: ProductModel,
+        401: Unauthorized,
+        403: Forbidden,
+        404: NotFound,
+      },
       detail: { summary: "Archive a product (admin)" },
     },
   );
