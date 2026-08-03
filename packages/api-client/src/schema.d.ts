@@ -28,10 +28,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List active products */
+        /** List products (active only unless includeInactive) */
         get: operations["getProducts"];
         put?: never;
-        post?: never;
+        /** Create a product (admin) */
+        post: operations["postProducts"];
         delete?: never;
         options?: never;
         head?: never;
@@ -53,6 +54,24 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/products/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Archive a product (admin) */
+        delete: operations["deleteProductsById"];
+        options?: never;
+        head?: never;
+        /** Update a product (admin) */
+        patch: operations["patchProductsById"];
         trace?: never;
     };
 }
@@ -79,7 +98,9 @@ export interface operations {
     };
     getProducts: {
         parameters: {
-            query?: never;
+            query?: {
+                includeInactive?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -106,6 +127,80 @@ export interface operations {
                         /** Format: date-time */
                         updatedAt: string;
                     }[];
+                };
+            };
+        };
+    };
+    postProducts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    slug: string;
+                    name: string;
+                    description?: (string | null) | null;
+                    priceCents: string | number;
+                    currency?: string;
+                    stock?: string | number;
+                    active?: boolean;
+                };
+                "application/x-www-form-urlencoded": {
+                    slug: string;
+                    name: string;
+                    description?: (string | null) | null;
+                    priceCents: string | number;
+                    currency?: string;
+                    stock?: string | number;
+                    active?: boolean;
+                };
+                "multipart/form-data": {
+                    slug: string;
+                    name: string;
+                    description?: (string | null) | null;
+                    priceCents: string | number;
+                    currency?: string;
+                    stock?: string | number;
+                    active?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Response for status 201 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        slug: string;
+                        name: string;
+                        description: (string | null) | null;
+                        priceCents: number;
+                        currency: string;
+                        stock: number;
+                        active: boolean;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Response for status 409 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
                 };
             };
         };
@@ -145,6 +240,139 @@ export interface operations {
             };
             /** @description Response for status 404 */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    deleteProductsById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        slug: string;
+                        name: string;
+                        description: (string | null) | null;
+                        priceCents: number;
+                        currency: string;
+                        stock: number;
+                        active: boolean;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Response for status 404 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    patchProductsById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    slug?: string;
+                    name?: string;
+                    description?: (string | null) | null;
+                    priceCents?: string | number;
+                    currency?: string;
+                    stock?: string | number;
+                    active?: boolean;
+                };
+                "application/x-www-form-urlencoded": {
+                    slug?: string;
+                    name?: string;
+                    description?: (string | null) | null;
+                    priceCents?: string | number;
+                    currency?: string;
+                    stock?: string | number;
+                    active?: boolean;
+                };
+                "multipart/form-data": {
+                    slug?: string;
+                    name?: string;
+                    description?: (string | null) | null;
+                    priceCents?: string | number;
+                    currency?: string;
+                    stock?: string | number;
+                    active?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        slug: string;
+                        name: string;
+                        description: (string | null) | null;
+                        priceCents: number;
+                        currency: string;
+                        stock: number;
+                        active: boolean;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Response for status 404 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 409 */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
