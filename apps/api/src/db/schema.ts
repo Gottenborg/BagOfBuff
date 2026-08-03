@@ -31,7 +31,11 @@ export const products = pgTable("products", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+})
+  // RLS is enabled with no policies: Supabase auto-exposes public tables via
+  // PostgREST, and this blocks all anon/authenticated access there. The API
+  // connects as the `postgres` role, which bypasses RLS, so it is unaffected.
+  .enableRLS();
 
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
