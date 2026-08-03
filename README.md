@@ -61,7 +61,23 @@ bun run --filter @repo/api-client generate
 # Database (from apps/api):
 bun run --filter @repo/api db:generate   # create a migration from the schema
 bun run --filter @repo/api db:migrate    # apply migrations
+bun run --filter @repo/api db:seed       # seed the launch product (idempotent)
 ```
+
+### Provisioning the database (Supabase)
+
+1. Create a Supabase project in an **EU region** (e.g. Frankfurt).
+2. Copy the **connection pooler** URL (port 6543) into `apps/api/.env` as
+   `DATABASE_URL` — the pooler needs `prepare: false`, which the client already
+   sets.
+3. Apply the schema and seed:
+   ```sh
+   bun run --filter @repo/api db:migrate
+   bun run --filter @repo/api db:seed
+   ```
+
+The initial migration (`apps/api/drizzle/0000_*.sql`) is committed, so
+`db:migrate` is all that's needed on a fresh database.
 
 ## Deployment
 
