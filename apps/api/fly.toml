@@ -1,0 +1,31 @@
+# Fly.io config for the Bag of Buff API.
+# Deploy from the repo root:
+#   fly deploy --config apps/api/fly.toml --dockerfile apps/api/Dockerfile
+#
+# Set secrets first:
+#   fly secrets set DATABASE_URL="postgresql://..." CORS_ORIGINS="https://bagofbuff.com,https://admin.bagofbuff.com"
+app = "bagofbuff-api"
+primary_region = "ams" # Amsterdam — keep data + compute in the EU
+
+[build]
+
+[env]
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

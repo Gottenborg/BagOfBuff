@@ -1,32 +1,76 @@
 # Back of Buff
 
-Monorepo for the Back of Buff project, managed with [Turborepo](https://turborepo.dev) and [Bun](https://bun.sh).
+Monorepo for the Bag of Buff webshop — a physical-product store with
+subscriptions, built EU-first. Managed with [Turborepo](https://turborepo.dev)
+and [Bun](https://bun.sh).
 
-## Structure
+## Architecture
 
-- `apps/*` — applications (empty for now, add as they're built)
-- `packages/eslint-config` — shared ESLint configuration
-- `packages/typescript-config` — shared `tsconfig.json` base
-- `packages/*` — additional shared packages, add as needed
+One authoritative backend, two frontends, sharing types through the monorepo.
 
-## Commands
+| Workspace | Stack | Role |
+|---|---|---|
+| `apps/api` | Elysia + Drizzle + postgres.js + OpenAPI (Bun) | The brain: products, orders, subscriptions, Stripe webhooks, fulfillment |
+| `apps/shop` | TanStack Start (**SSR**) + TanStack Query + Tailwind v4 | Customer storefront (bagofbuff.com) — SSR for SEO + live data |
+| `apps/admin` | TanStack Start (**SPA**) + TanStack Query + Tailwind v4 | Internal back office — catalogue + order management |
+| `packages/api-client` | openapi-typescript + openapi-fetch | Typed API client generated from the API's OpenAPI spec, shared by both frontends |
+| `packages/ui` | React + Tailwind (clsx + tailwind-merge) | Shared UI components |
+| `packages/eslint-config`, `packages/typescript-config` | — | Shared configs |
+
+### Data flow
+
+`apps/api` emits an OpenAPI document (`apps/api/openapi.json`). `packages/api-client`
+generates TypeScript types from it (`bun run --filter @repo/api-client generate`),
+so the storefront and back office both consume the API through one type-safe
+client. **The API is the single source of truth** — the frontends never touch
+Postgres directly.
+
+## Planned infrastructure
+
+- **Supabase** (EU region) — Postgres, Auth, and Storage. Used as plain Postgres
+  via Drizzle (not `supabase-js`) to stay portable.
+- **Fly.io** (EU) — hosts the API and the SSR storefront as Bun containers; the
+  admin builds to a static SPA shell.
+- **Stripe** — Checkout + Billing + Tax for payments, subscriptions, and EU VAT
+  (physical goods, so Stripe is merchant-enabler and we file VAT OSS).
+
+## Getting started
 
 ```sh
-bun install       # install dependencies
-bun run build     # build all apps and packages
-bun run dev       # develop all apps and packages
-bun run lint      # lint all apps and packages
-bun run check-types  # type-check all apps and packages
-bun run format    # format with prettier
+bun install
+
+# Point apps/api at a database (see apps/api/.env.example)
+cp apps/api/.env.example apps/api/.env
+
+bun run dev          # run all apps in dev
 ```
 
-You can scope any command to a single package with a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters), e.g. `bun run build --filter=<package-name>`.
+Default dev ports: API `3001`, storefront `3000`, admin `3002`.
 
-## Remote Caching
-
-Turborepo caches locally by default. To share the cache across machines/CI, connect to [Vercel Remote Cache](https://turborepo.dev/docs/core-concepts/remote-caching):
+## Common commands
 
 ```sh
-bunx turbo login
-bunx turbo link
+bun run build         # build all workspaces
+bun run check-types   # type-check everything
+bun run lint          # lint (where configured)
+
+# Regenerate the typed API client after changing API routes:
+bun run --filter @repo/api openapi:export
+bun run --filter @repo/api-client generate
+
+# Database (from apps/api):
+bun run --filter @repo/api db:generate   # create a migration from the schema
+bun run --filter @repo/api db:migrate    # apply migrations
 ```
+
+## Deployment
+
+Both server apps deploy to Fly.io from the repo root:
+
+```sh
+fly deploy --config apps/api/fly.toml  --dockerfile apps/api/Dockerfile
+fly deploy --config apps/shop/fly.toml --dockerfile apps/shop/Dockerfile
+```
+
+The admin app builds to a static SPA (`apps/admin/.output/public`, with
+`_shell.html` as the entry) and can be served from any static host or CDN.

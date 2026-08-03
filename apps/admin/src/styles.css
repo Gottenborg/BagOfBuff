@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+/* Include shared UI package classes in Tailwind's content scan. */
+@source "../../../packages/ui/src/**/*.{ts,tsx}";
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
