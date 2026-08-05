@@ -10,8 +10,8 @@ import {
   Field,
   Heading,
   Input,
+  Loading,
   Logo,
-  Spinner,
   Text,
 } from "@repo/ui";
 import { LoginForm } from "../components/login-form";
@@ -30,12 +30,7 @@ function formatPrice(cents: number, currency: string) {
 /** Auth gate: show the login form until there's a session. */
 function AdminRoot() {
   const { session, loading } = useSession();
-  if (loading)
-    return (
-      <p className="flex items-center gap-2 p-8 text-muted">
-        <Spinner /> Loading…
-      </p>
-    );
+  if (loading) return <Loading className="p-8" />;
   if (!session) return <LoginForm />;
   return <Dashboard />;
 }
@@ -69,12 +64,14 @@ function Dashboard() {
   });
 
   return (
-    <Container size="xl" className="py-10">
+    <Container as="main" size="xl" className="py-10">
       <header className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Logo markOnly />
           <div>
-            <Heading level={3}>Back office</Heading>
+            <Heading level={1} size={3}>
+              Back office
+            </Heading>
             <Text muted className="text-sm">
               Manage the Bag of Buff catalogue.
             </Text>
@@ -91,11 +88,7 @@ function Dashboard() {
         }
       />
 
-      {isLoading && (
-        <p className="mt-8 flex items-center gap-2 text-muted">
-          <Spinner /> Loading…
-        </p>
-      )}
+      {isLoading && <Loading className="mt-8" />}
       {isError && (
         <Text className="mt-8 text-danger">
           Could not reach the API. Is it running on port 3001?
@@ -200,22 +193,25 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
           }}
           className="flex flex-wrap items-end gap-4"
         >
-          <Field label="Name" className="w-48">
+          <Field label="Name" htmlFor="np-name" className="w-48">
             <Input
+              id="np-name"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </Field>
-          <Field label="Slug" className="w-40">
+          <Field label="Slug" htmlFor="np-slug" className="w-40">
             <Input
+              id="np-slug"
               required
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
             />
           </Field>
-          <Field label="Price (€)" className="w-28">
+          <Field label="Price (€)" htmlFor="np-price" className="w-28">
             <Input
+              id="np-price"
               required
               type="number"
               step="0.01"
@@ -224,8 +220,9 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
               onChange={(e) => setPrice(e.target.value)}
             />
           </Field>
-          <Field label="Stock" className="w-24">
+          <Field label="Stock" htmlFor="np-stock" className="w-24">
             <Input
+              id="np-stock"
               type="number"
               min="0"
               value={stock}

@@ -21,8 +21,9 @@ export function LoginForm() {
   }
 
   return (
-    <div className="mx-auto mt-24 max-w-sm px-6">
+    <main className="mx-auto mt-24 max-w-sm px-6">
       <div className="mb-6 flex flex-col items-center gap-3 text-center">
+        <h1 className="sr-only">Bag of Buff — Admin sign in</h1>
         <Logo />
         <Text muted className="text-sm">
           Back office — sign in to continue.
@@ -58,6 +59,6 @@ export function LoginForm() {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }

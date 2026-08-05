@@ -15,4 +15,9 @@ export { Badge, type BadgeProps } from "./badge";
 export { Container, type ContainerProps } from "./container";
 export { Heading, Text, type HeadingProps, type TextProps } from "./typography";
 export { Logo, BobMark, type LogoProps, type BobMarkProps } from "./logo";
-export { Spinner, type SpinnerProps } from "./spinner";
+export {
+  Spinner,
+  Loading,
+  type SpinnerProps,
+  type LoadingProps,
+} from "./spinner";

@@ -11,17 +11,30 @@ const headingSizes: Record<HeadingLevel, string> = {
 };
 
 export interface HeadingProps extends HTMLAttributes<HTMLHeadingElement> {
+  /** Semantic heading level (`h1`–`h4`). Drives the document outline. */
   level?: HeadingLevel;
+  /** Visual size, independent of `level`. Defaults to `level`. */
+  size?: HeadingLevel;
 }
 
-/** Display heading using the brand display font. */
-export function Heading({ level = 1, className, ...props }: HeadingProps) {
+/**
+ * Display heading using the brand display font. `level` controls the semantic
+ * tag (and outline); pass `size` to style it as a different level without
+ * changing the semantics — e.g. a page's `h1` that should read visually as an
+ * `h2`.
+ */
+export function Heading({
+  level = 1,
+  size,
+  className,
+  ...props
+}: HeadingProps) {
   const Tag = `h${level}` as const;
   return (
     <Tag
       className={cn(
         "font-display font-extrabold tracking-tightest text-foreground",
-        headingSizes[level],
+        headingSizes[size ?? level],
         className,
       )}
       {...props}

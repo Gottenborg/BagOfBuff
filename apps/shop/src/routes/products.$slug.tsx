@@ -37,8 +37,10 @@ function ProductDetail() {
   return (
     <>
       <SiteHeader />
-      <Container size="md" className="py-12">
-        <Heading level={2}>{product.name}</Heading>
+      <Container as="main" size="md" className="py-12">
+        <Heading level={1} size={2}>
+          {product.name}
+        </Heading>
         <p className="mt-2 text-xl font-semibold">
           {formatPrice(product.priceCents, product.currency)}
           <span className="ml-2 text-sm font-normal text-muted">incl. VAT</span>

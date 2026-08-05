@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Button, Card, Container, Heading, Spinner, Text } from "@repo/ui";
+import { Button, Card, Container, Heading, Loading, Text } from "@repo/ui";
 import { SiteHeader } from "../components/site-header";
 import { addToCart } from "../lib/cart";
 import { formatPrice } from "../lib/format";
@@ -25,7 +25,7 @@ function Home() {
   return (
     <>
       <SiteHeader />
-      <Container size="lg" className="py-12">
+      <Container as="main" size="lg" className="py-12">
         <header className="mb-10 max-w-2xl">
           <Heading level={1}>Strength, bagged.</Heading>
           <Text muted className="mt-3 text-lg">
@@ -33,11 +33,7 @@ function Home() {
           </Text>
         </header>
 
-        {isLoading && (
-          <p className="flex items-center gap-2 text-muted">
-            <Spinner /> Loading products…
-          </p>
-        )}
+        {isLoading && <Loading>Loading products…</Loading>}
         {isError && (
           <Text className="text-danger">
             Could not reach the API. Is it running on port 3001?
