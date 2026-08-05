@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "generate-routes": "tsr generate",
+    "lint": "eslint .",
     "build": "vite build",
     "start": "node .output/server/index.mjs",
     "preview": "vite preview",
@@ -29,9 +30,11 @@
     "tailwindcss": "4.3.3"
   },
   "devDependencies": {
+    "@repo/eslint-config": "*",
     "@tanstack/devtools-vite": "0.8.3",
     "@tanstack/router-cli": "1.167.21",
     "@types/node": "^22.20.0",
+    "eslint": "^9.39.1",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "6.0.5",
