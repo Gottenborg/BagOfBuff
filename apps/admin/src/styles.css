@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Shared Bag of Buff design tokens (colours, radii, type). */
+@import "../../../packages/ui/src/theme.css";
+
 /* Include shared UI package classes in Tailwind's content scan. */
 @source "../../../packages/ui/src/**/*.{ts,tsx}";
 
@@ -15,4 +18,8 @@ body,
 
 body {
   margin: 0;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }

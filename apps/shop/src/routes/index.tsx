@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Button } from "@repo/ui";
+import { Button, Card, Container, Heading, Loading, Text } from "@repo/ui";
 import { SiteHeader } from "../components/site-header";
 import { addToCart } from "../lib/cart";
 import { formatPrice } from "../lib/format";
@@ -25,63 +25,64 @@ function Home() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-5xl p-8">
-        <header className="mb-8">
-          <h1 className="text-4xl font-bold tracking-tight">Bag of Buff</h1>
-          <p className="mt-2 text-neutral-600">The storefront starts here.</p>
+      <Container as="main" size="lg" className="py-12">
+        <header className="mb-10 max-w-2xl">
+          <Heading level={1}>Strength, bagged.</Heading>
+          <Text muted className="mt-3 text-lg">
+            Supplements for people who actually keep showing up.
+          </Text>
         </header>
 
-        {isLoading && <p className="text-neutral-500">Loading products…</p>}
+        {isLoading && <Loading>Loading products…</Loading>}
         {isError && (
-          <p className="text-red-600">
+          <Text className="text-danger">
             Could not reach the API. Is it running on port 3001?
-          </p>
+          </Text>
         )}
 
         {products && products.length === 0 && (
-          <p className="text-neutral-500">No products yet.</p>
+          <Text muted>No products yet.</Text>
         )}
 
         <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {products?.map((product) => (
-            <li
-              key={product.id}
-              className="flex flex-col rounded-lg border border-neutral-200 p-5"
-            >
-              <Link
-                to="/products/$slug"
-                params={{ slug: product.slug }}
-                className="text-lg font-semibold hover:underline"
-              >
-                {product.name}
-              </Link>
-              {product.description && (
-                <p className="mt-1 flex-1 text-sm text-neutral-600">
-                  {product.description}
-                </p>
-              )}
-              <div className="mt-4 flex items-center justify-between">
-                <span className="font-medium">
-                  {formatPrice(product.priceCents, product.currency)}
-                </span>
-                <Button
-                  size="sm"
-                  onClick={() =>
-                    addToCart({
-                      slug: product.slug,
-                      name: product.name,
-                      priceCents: product.priceCents,
-                      currency: product.currency,
-                    })
-                  }
+            <li key={product.id}>
+              <Card className="flex h-full flex-col p-5">
+                <Link
+                  to="/products/$slug"
+                  params={{ slug: product.slug }}
+                  className="font-display text-lg font-bold tracking-tight hover:text-brand-strong"
                 >
-                  Add to cart
-                </Button>
-              </div>
+                  {product.name}
+                </Link>
+                {product.description && (
+                  <p className="mt-1 flex-1 text-sm text-muted">
+                    {product.description}
+                  </p>
+                )}
+                <div className="mt-4 flex items-center justify-between">
+                  <span className="font-semibold">
+                    {formatPrice(product.priceCents, product.currency)}
+                  </span>
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      addToCart({
+                        slug: product.slug,
+                        name: product.name,
+                        priceCents: product.priceCents,
+                        currency: product.currency,
+                      })
+                    }
+                  >
+                    Add to cart
+                  </Button>
+                </div>
+              </Card>
             </li>
           ))}
         </ul>
-      </main>
+      </Container>
     </>
   );
 }
