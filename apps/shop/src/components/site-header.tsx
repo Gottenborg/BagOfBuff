@@ -11,7 +11,7 @@ export function SiteHeader() {
           <Logo />
         </Link>
         <Link
-          to="/"
+          to="/checkout"
           className="inline-flex items-center gap-2 text-sm font-semibold text-muted transition-colors hover:text-foreground"
         >
           Cart

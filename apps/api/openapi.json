@@ -3453,6 +3453,518 @@
         },
         "operationId": "deleteShippingRatesById"
       }
+    },
+    "/checkout/session": {
+      "post": {
+        "tags": [
+          "Checkout"
+        ],
+        "summary": "Start a Stripe Checkout session for a cart",
+        "description": "Validates the cart against the catalogue, applies shipping, and returns a hosted Stripe Checkout URL. Prices are server-authoritative.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "items",
+                  "country",
+                  "shippingRateId"
+                ],
+                "properties": {
+                  "items": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "slug",
+                        "quantity"
+                      ],
+                      "properties": {
+                        "slug": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "quantity": {
+                          "minimum": 1,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 1,
+                              "type": "integer"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "country": {
+                    "minLength": 2,
+                    "maxLength": 2,
+                    "type": "string"
+                  },
+                  "shippingRateId": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "email": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "email",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "items",
+                  "country",
+                  "shippingRateId"
+                ],
+                "properties": {
+                  "items": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "slug",
+                        "quantity"
+                      ],
+                      "properties": {
+                        "slug": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "quantity": {
+                          "minimum": 1,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 1,
+                              "type": "integer"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "country": {
+                    "minLength": 2,
+                    "maxLength": 2,
+                    "type": "string"
+                  },
+                  "shippingRateId": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "email": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "email",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "items",
+                  "country",
+                  "shippingRateId"
+                ],
+                "properties": {
+                  "items": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "slug",
+                        "quantity"
+                      ],
+                      "properties": {
+                        "slug": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "quantity": {
+                          "minimum": 1,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 1,
+                              "type": "integer"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "country": {
+                    "minLength": 2,
+                    "maxLength": 2,
+                    "type": "string"
+                  },
+                  "shippingRateId": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "email": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "email",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "url",
+                    "sessionId",
+                    "orderId"
+                  ],
+                  "properties": {
+                    "url": {
+                      "type": "string"
+                    },
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "orderId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response for status 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Response for status 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Response for status 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Response for status 503",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postCheckoutSession"
+      }
+    },
+    "/checkout/webhook": {
+      "post": {
+        "tags": [
+          "Checkout"
+        ],
+        "summary": "Stripe webhook (checkout completion → order fulfillment)",
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "received"
+                  ],
+                  "properties": {
+                    "received": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response for status 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Response for status 503",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postCheckoutWebhook"
+      }
+    },
+    "/checkout/orders/{id}": {
+      "get": {
+        "tags": [
+          "Checkout"
+        ],
+        "summary": "Get an order by id (for the checkout confirmation page)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "status",
+                    "currency",
+                    "subtotalCents",
+                    "shippingCents",
+                    "taxCents",
+                    "totalCents",
+                    "email",
+                    "items"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "subtotalCents": {
+                      "type": "number"
+                    },
+                    "shippingCents": {
+                      "type": "number"
+                    },
+                    "taxCents": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "totalCents": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "email": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "slug",
+                          "name",
+                          "unitPriceCents",
+                          "currency",
+                          "quantity"
+                        ],
+                        "properties": {
+                          "slug": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "unitPriceCents": {
+                            "type": "number"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "type": "number"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Response for status 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getCheckoutOrdersById"
+      }
     }
   },
   "components": {

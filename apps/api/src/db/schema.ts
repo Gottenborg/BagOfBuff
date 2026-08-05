@@ -113,3 +113,78 @@ export const shippingRates = pgTable("shipping_rates", {
 
 export type ShippingRate = typeof shippingRates.$inferSelect;
 export type NewShippingRate = typeof shippingRates.$inferInsert;
+
+/**
+ * Customer orders. Created in a `pending` state when a Stripe Checkout session
+ * is opened, then advanced to `paid` by the webhook once payment succeeds
+ * (`fulfilled`/`canceled` later). The Stripe session id is unique, which makes
+ * webhook handling idempotent — a redelivered event finds the same order.
+ *
+ * Money is stored in minor units (cents). The pending row carries the amounts
+ * we compute (subtotal + shipping); tax and the authoritative total come back
+ * from Stripe Tax on the webhook, so `taxCents`/`totalCents` are filled then.
+ */
+export const orders = pgTable("orders", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  /** pending → paid → fulfilled, or canceled. Kept as text (no DB enum) to
+   * match the rest of the schema and stay migration-light. */
+  status: text("status").notNull().default("pending"),
+  email: text("email"),
+  /** Stripe Checkout Session id — unique so webhooks are idempotent. */
+  stripeSessionId: text("stripe_session_id").notNull().unique(),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  currency: text("currency").notNull().default("EUR"),
+  subtotalCents: integer("subtotal_cents").notNull(),
+  shippingCents: integer("shipping_cents").notNull().default(0),
+  taxCents: integer("tax_cents"),
+  totalCents: integer("total_cents"),
+  /** Chosen shipping rate (name captured for the order record). */
+  shippingRateId: text("shipping_rate_id"),
+  shippingRateName: text("shipping_rate_name"),
+  // Ship-to address, captured at checkout (Stripe collects/confirms it).
+  shipName: text("ship_name"),
+  shipLine1: text("ship_line1"),
+  shipLine2: text("ship_line2"),
+  shipCity: text("ship_city"),
+  shipPostalCode: text("ship_postal_code"),
+  shipCountry: text("ship_country"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
+}).enableRLS();
+
+export type Order = typeof orders.$inferSelect;
+export type NewOrder = typeof orders.$inferInsert;
+
+/**
+ * Line items of an order. Product name and unit price are copied in at purchase
+ * time so the order is a faithful historical record even if the product later
+ * changes or is archived; `productId` keeps a soft link for back-office lookups.
+ */
+export const orderItems = pgTable("order_items", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  orderId: text("order_id")
+    .notNull()
+    .references(() => orders.id, { onDelete: "cascade" }),
+  /** Soft link — products are soft-deleted, so this is not a hard FK. */
+  productId: text("product_id"),
+  slug: text("slug").notNull(),
+  name: text("name").notNull(),
+  unitPriceCents: integer("unit_price_cents").notNull(),
+  currency: text("currency").notNull().default("EUR"),
+  quantity: integer("quantity").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+}).enableRLS();
+
+export type OrderItem = typeof orderItems.$inferSelect;
+export type NewOrderItem = typeof orderItems.$inferInsert;

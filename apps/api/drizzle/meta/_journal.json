@@ -29,6 +29,13 @@
       "when": 1785960795040,
       "tag": "0003_brown_warlock",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785963297632,
+      "tag": "0004_harsh_silver_centurion",
+      "breakpoints": true
     }
   ]
 }

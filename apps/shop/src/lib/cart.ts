@@ -54,6 +54,17 @@ export function removeFromCart(slug: string) {
   commit(items.filter((i) => i.slug !== slug));
 }
 
+/** Set the quantity for a line, removing it when qty drops to zero. */
+export function setQty(slug: string, qty: number) {
+  if (qty <= 0) return removeFromCart(slug);
+  commit(items.map((i) => (i.slug === slug ? { ...i, qty } : i)));
+}
+
+/** Empty the cart — called once an order is confirmed. */
+export function clearCart() {
+  commit([]);
+}
+
 export function useCart(): CartItem[] {
   return useSyncExternalStore(
     subscribe,
