@@ -16,7 +16,13 @@
         "DATABASE_URL",
         "PORT",
         "CORS_ORIGINS",
-        "SUPABASE_URL"
+        "SUPABASE_URL",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "CHECKOUT_SUCCESS_URL",
+        "CHECKOUT_CANCEL_URL",
+        "RESEND_API_KEY",
+        "ORDER_FROM_EMAIL"
       ],
       "outputs": ["dist/**", ".output/**", "!.output/cache/**"]
     },
