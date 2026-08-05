@@ -4,6 +4,7 @@ import { Elysia } from "elysia";
 import { env } from "./lib/env";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { productsRoutes } from "./modules/products/products.routes";
+import { shippingRoutes } from "./modules/shipping/shipping.routes";
 
 /**
  * The Elysia application. Exported separately from the server bootstrap so it
@@ -27,6 +28,7 @@ export const app = new Elysia()
     detail: { summary: "Health check", tags: ["System"] },
   })
   .use(authRoutes)
-  .use(productsRoutes);
+  .use(productsRoutes)
+  .use(shippingRoutes);
 
 export type App = typeof app;

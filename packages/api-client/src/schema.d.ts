@@ -91,6 +91,111 @@ export interface paths {
         patch: operations["patchProductsById"];
         trace?: never;
     };
+    "/shipping/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get shipping options for a destination + subtotal */
+        post: operations["postShippingQuote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shipping/validate-address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate a shipping address and check we ship there */
+        post: operations["postShippingValidate-address"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shipping/zones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List shipping zones with their rates (admin) */
+        get: operations["getShippingZones"];
+        put?: never;
+        /** Create a shipping zone (admin) */
+        post: operations["postShippingZones"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shipping/zones/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Archive a shipping zone (admin) */
+        delete: operations["deleteShippingZonesById"];
+        options?: never;
+        head?: never;
+        /** Update a shipping zone (admin) */
+        patch: operations["patchShippingZonesById"];
+        trace?: never;
+    };
+    "/shipping/zones/{zoneId}/rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a rate to a zone (admin) */
+        post: operations["postShippingZonesByZoneIdRates"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shipping/rates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Archive a shipping rate (admin) */
+        delete: operations["deleteShippingRatesById"];
+        options?: never;
+        head?: never;
+        /** Update a shipping rate (admin) */
+        patch: operations["patchShippingRatesById"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -491,6 +596,712 @@ export interface operations {
             };
             /** @description Response for status 409 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    postShippingQuote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    country: string;
+                    subtotalCents: string | number;
+                };
+                "application/x-www-form-urlencoded": {
+                    country: string;
+                    subtotalCents: string | number;
+                };
+                "multipart/form-data": {
+                    country: string;
+                    subtotalCents: string | number;
+                };
+            };
+        };
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        zone: {
+                            id: string;
+                            name: string;
+                        };
+                        options: {
+                            id: string;
+                            name: string;
+                            priceCents: number;
+                            baseCents: number;
+                            currency: string;
+                            free: boolean;
+                            minDeliveryDays: (number | null) | null;
+                            maxDeliveryDays: (number | null) | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description Response for status 404 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "postShippingValidate-address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    line1: string;
+                    line2?: (string | null) | null;
+                    city: string;
+                    postalCode: string;
+                    country: string;
+                    phone?: (string | null) | null;
+                };
+                "application/x-www-form-urlencoded": {
+                    name: string;
+                    line1: string;
+                    line2?: (string | null) | null;
+                    city: string;
+                    postalCode: string;
+                    country: string;
+                    phone?: (string | null) | null;
+                };
+                "multipart/form-data": {
+                    name: string;
+                    line1: string;
+                    line2?: (string | null) | null;
+                    city: string;
+                    postalCode: string;
+                    country: string;
+                    phone?: (string | null) | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        normalized: {
+                            name: string;
+                            line1: string;
+                            line2?: (string | null) | null;
+                            city: string;
+                            postalCode: string;
+                            country: string;
+                            phone?: (string | null) | null;
+                        };
+                        shippable: boolean;
+                        zone: ({
+                            id: string;
+                            name: string;
+                        } | null) | null;
+                    };
+                };
+            };
+        };
+    };
+    getShippingZones: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        name: string;
+                        countries: string[];
+                        priority: number;
+                        active: boolean;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        rates: {
+                            id: string;
+                            zoneId: string;
+                            name: string;
+                            priceCents: number;
+                            currency: string;
+                            freeAboveCents: (number | null) | null;
+                            minDeliveryDays: (number | null) | null;
+                            maxDeliveryDays: (number | null) | null;
+                            active: boolean;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        }[];
+                    }[];
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    postShippingZones: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    countries: string[];
+                    priority?: string | number;
+                    active?: boolean;
+                };
+                "application/x-www-form-urlencoded": {
+                    name: string;
+                    countries: string[];
+                    priority?: string | number;
+                    active?: boolean;
+                };
+                "multipart/form-data": {
+                    name: string;
+                    countries: string[];
+                    priority?: string | number;
+                    active?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Response for status 201 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        name: string;
+                        countries: string[];
+                        priority: number;
+                        active: boolean;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 409 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    deleteShippingZonesById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        name: string;
+                        countries: string[];
+                        priority: number;
+                        active: boolean;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 404 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    patchShippingZonesById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    countries?: string[];
+                    priority?: string | number;
+                    active?: boolean;
+                };
+                "application/x-www-form-urlencoded": {
+                    name?: string;
+                    countries?: string[];
+                    priority?: string | number;
+                    active?: boolean;
+                };
+                "multipart/form-data": {
+                    name?: string;
+                    countries?: string[];
+                    priority?: string | number;
+                    active?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        name: string;
+                        countries: string[];
+                        priority: number;
+                        active: boolean;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 404 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 409 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    postShippingZonesByZoneIdRates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                zoneId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    priceCents: string | number;
+                    currency?: string;
+                    freeAboveCents?: ((string | number) | null) | null;
+                    minDeliveryDays?: ((string | number) | null) | null;
+                    maxDeliveryDays?: ((string | number) | null) | null;
+                    active?: boolean;
+                };
+                "application/x-www-form-urlencoded": {
+                    name: string;
+                    priceCents: string | number;
+                    currency?: string;
+                    freeAboveCents?: ((string | number) | null) | null;
+                    minDeliveryDays?: ((string | number) | null) | null;
+                    maxDeliveryDays?: ((string | number) | null) | null;
+                    active?: boolean;
+                };
+                "multipart/form-data": {
+                    name: string;
+                    priceCents: string | number;
+                    currency?: string;
+                    freeAboveCents?: ((string | number) | null) | null;
+                    minDeliveryDays?: ((string | number) | null) | null;
+                    maxDeliveryDays?: ((string | number) | null) | null;
+                    active?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Response for status 201 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        zoneId: string;
+                        name: string;
+                        priceCents: number;
+                        currency: string;
+                        freeAboveCents: (number | null) | null;
+                        minDeliveryDays: (number | null) | null;
+                        maxDeliveryDays: (number | null) | null;
+                        active: boolean;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 404 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    deleteShippingRatesById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        zoneId: string;
+                        name: string;
+                        priceCents: number;
+                        currency: string;
+                        freeAboveCents: (number | null) | null;
+                        minDeliveryDays: (number | null) | null;
+                        maxDeliveryDays: (number | null) | null;
+                        active: boolean;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 404 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    patchShippingRatesById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    priceCents?: string | number;
+                    currency?: string;
+                    freeAboveCents?: ((string | number) | null) | null;
+                    minDeliveryDays?: ((string | number) | null) | null;
+                    maxDeliveryDays?: ((string | number) | null) | null;
+                    active?: boolean;
+                };
+                "application/x-www-form-urlencoded": {
+                    name?: string;
+                    priceCents?: string | number;
+                    currency?: string;
+                    freeAboveCents?: ((string | number) | null) | null;
+                    minDeliveryDays?: ((string | number) | null) | null;
+                    maxDeliveryDays?: ((string | number) | null) | null;
+                    active?: boolean;
+                };
+                "multipart/form-data": {
+                    name?: string;
+                    priceCents?: string | number;
+                    currency?: string;
+                    freeAboveCents?: ((string | number) | null) | null;
+                    minDeliveryDays?: ((string | number) | null) | null;
+                    maxDeliveryDays?: ((string | number) | null) | null;
+                    active?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        zoneId: string;
+                        name: string;
+                        priceCents: number;
+                        currency: string;
+                        freeAboveCents: (number | null) | null;
+                        minDeliveryDays: (number | null) | null;
+                        maxDeliveryDays: (number | null) | null;
+                        active: boolean;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 404 */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

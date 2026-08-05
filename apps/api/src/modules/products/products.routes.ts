@@ -127,14 +127,13 @@ export const productsRoutes = new Elysia({
     "/",
     async ({ body, status }) => {
       try {
-        const [created] = await db
-          .insert(products)
-          .values(body)
-          .returning();
+        const [created] = await db.insert(products).values(body).returning();
         return status(201, serialize(created!));
       } catch (err) {
         if (isUniqueViolation(err)) {
-          return status(409, { message: "A product with that slug already exists" });
+          return status(409, {
+            message: "A product with that slug already exists",
+          });
         }
         throw err;
       }
@@ -168,7 +167,9 @@ export const productsRoutes = new Elysia({
         return serialize(updated);
       } catch (err) {
         if (isUniqueViolation(err)) {
-          return status(409, { message: "A product with that slug already exists" });
+          return status(409, {
+            message: "A product with that slug already exists",
+          });
         }
         throw err;
       }

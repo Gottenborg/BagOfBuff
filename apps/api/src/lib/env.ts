@@ -10,7 +10,9 @@ export const env = {
     process.env.DATABASE_URL ?? "postgres://localhost:5432/bagofbuff",
   PORT: Number(process.env.PORT ?? 3001),
   // Comma-separated list of allowed browser origins (shop + admin).
-  CORS_ORIGINS: (process.env.CORS_ORIGINS ?? "http://localhost:3000,http://localhost:3002")
+  CORS_ORIGINS: (
+    process.env.CORS_ORIGINS ?? "http://localhost:3000,http://localhost:3002"
+  )
     .split(",")
     .map((o) => o.trim())
     .filter(Boolean),
