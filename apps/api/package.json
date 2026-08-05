@@ -7,6 +7,7 @@
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "build": "bun build src/index.ts --target bun --outdir dist",
+    "lint": "eslint .",
     "check-types": "tsc --noEmit",
     "openapi:export": "bun scripts/export-openapi.ts",
     "db:generate": "drizzle-kit generate",
@@ -25,9 +26,12 @@
     "postgres": "^3.4.5"
   },
   "devDependencies": {
+    "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@types/bun": "latest",
     "drizzle-kit": "^0.31.6",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
     "typescript": "^5.9.0"
   }
 }

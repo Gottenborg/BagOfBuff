@@ -3,17 +3,28 @@
   "ui": "tui",
   "globalEnv": ["NODE_ENV"],
   "tasks": {
+    "generate-routes": {
+      "outputs": ["src/routeTree.gen.ts"]
+    },
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "generate-routes"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "env": ["VITE_API_URL"],
+      "env": [
+        "VITE_API_URL",
+        "VITE_SUPABASE_URL",
+        "VITE_SUPABASE_ANON_KEY",
+        "DATABASE_URL",
+        "PORT",
+        "CORS_ORIGINS",
+        "SUPABASE_URL"
+      ],
       "outputs": ["dist/**", ".output/**", "!.output/cache/**"]
     },
     "lint": {
       "dependsOn": ["^lint"]
     },
     "check-types": {
-      "dependsOn": ["^check-types"]
+      "dependsOn": ["^check-types", "generate-routes"]
     },
     "dev": {
       "cache": false,
