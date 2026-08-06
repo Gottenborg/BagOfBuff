@@ -1,0 +1,23 @@
+# Fly config for the storefront. Deploy with:
+#   fly deploy --config fly.shop.toml --build-arg VITE_API_URL=… [--build-arg VITE_PLAUSIBLE_DOMAIN=…]
+# NOTE: `app` must match the Fly app you created (`fly apps create bagofbuff-shop`).
+app = "bagofbuff-shop"
+primary_region = "fra"
+
+[build]
+  dockerfile = "Dockerfile.shop"
+
+[env]
+  PORT = "3000"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  # Keep the storefront warm to avoid cold-start latency for shoppers.
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

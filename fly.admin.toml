@@ -1,0 +1,23 @@
+# Fly config for the back office. Deploy with:
+#   fly deploy --config fly.admin.toml --build-arg VITE_API_URL=… --build-arg VITE_SUPABASE_URL=… --build-arg VITE_SUPABASE_ANON_KEY=…
+# NOTE: `app` must match the Fly app you created (`fly apps create bagofbuff-admin`).
+app = "bagofbuff-admin"
+primary_region = "fra"
+
+[build]
+  dockerfile = "Dockerfile.admin"
+
+[env]
+  PORT = "3000"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  # Low-traffic internal tool — let it scale to zero and cold-start on demand.
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

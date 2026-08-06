@@ -1,0 +1,12 @@
+# Keep the Docker build context small and reproducible: install deps and build
+# fresh inside the image rather than copying local artefacts.
+**/node_modules
+**/.output
+**/dist
+**/.turbo
+.turbo
+.git
+**/.env
+**/.env.*
+!**/.env.example
+**/*.log
