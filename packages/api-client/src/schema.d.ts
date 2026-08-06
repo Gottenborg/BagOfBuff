@@ -484,6 +484,8 @@ export interface operations {
                         name: string;
                         description: (string | null) | null;
                         priceCents: number;
+                        compareAtCents: (number | null) | null;
+                        lowestPriceCents30d: (number | null) | null;
                         currency: string;
                         stock: number;
                         active: boolean;
@@ -510,6 +512,7 @@ export interface operations {
                     name: string;
                     description?: (string | null) | null;
                     priceCents: string | number;
+                    compareAtCents?: ((string | number) | null) | null;
                     currency?: string;
                     stock?: string | number;
                     active?: boolean;
@@ -519,6 +522,7 @@ export interface operations {
                     name: string;
                     description?: (string | null) | null;
                     priceCents: string | number;
+                    compareAtCents?: ((string | number) | null) | null;
                     currency?: string;
                     stock?: string | number;
                     active?: boolean;
@@ -528,6 +532,7 @@ export interface operations {
                     name: string;
                     description?: (string | null) | null;
                     priceCents: string | number;
+                    compareAtCents?: ((string | number) | null) | null;
                     currency?: string;
                     stock?: string | number;
                     active?: boolean;
@@ -547,6 +552,8 @@ export interface operations {
                         name: string;
                         description: (string | null) | null;
                         priceCents: number;
+                        compareAtCents: (number | null) | null;
+                        lowestPriceCents30d: (number | null) | null;
                         currency: string;
                         stock: number;
                         active: boolean;
@@ -615,6 +622,8 @@ export interface operations {
                         name: string;
                         description: (string | null) | null;
                         priceCents: number;
+                        compareAtCents: (number | null) | null;
+                        lowestPriceCents30d: (number | null) | null;
                         currency: string;
                         stock: number;
                         active: boolean;
@@ -661,6 +670,8 @@ export interface operations {
                         name: string;
                         description: (string | null) | null;
                         priceCents: number;
+                        compareAtCents: (number | null) | null;
+                        lowestPriceCents30d: (number | null) | null;
                         currency: string;
                         stock: number;
                         active: boolean;
@@ -722,6 +733,7 @@ export interface operations {
                     name?: string;
                     description?: (string | null) | null;
                     priceCents?: string | number;
+                    compareAtCents?: ((string | number) | null) | null;
                     currency?: string;
                     stock?: string | number;
                     active?: boolean;
@@ -731,6 +743,7 @@ export interface operations {
                     name?: string;
                     description?: (string | null) | null;
                     priceCents?: string | number;
+                    compareAtCents?: ((string | number) | null) | null;
                     currency?: string;
                     stock?: string | number;
                     active?: boolean;
@@ -740,6 +753,7 @@ export interface operations {
                     name?: string;
                     description?: (string | null) | null;
                     priceCents?: string | number;
+                    compareAtCents?: ((string | number) | null) | null;
                     currency?: string;
                     stock?: string | number;
                     active?: boolean;
@@ -759,6 +773,8 @@ export interface operations {
                         name: string;
                         description: (string | null) | null;
                         priceCents: number;
+                        compareAtCents: (number | null) | null;
+                        lowestPriceCents30d: (number | null) | null;
                         currency: string;
                         stock: number;
                         active: boolean;

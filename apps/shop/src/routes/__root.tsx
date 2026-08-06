@@ -7,6 +7,9 @@ import {
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 
+import { Analytics } from "../components/analytics";
+import { CookieConsent } from "../components/cookie-consent";
+import { SiteFooter } from "../components/site-footer";
 import appCss from "../styles.css?url";
 
 export interface RootRouteContext {
@@ -33,6 +36,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
+        <SiteFooter />
+        <CookieConsent />
+        <Analytics />
         {import.meta.env.DEV && (
           <TanStackDevtools
             config={{ position: "bottom-right" }}

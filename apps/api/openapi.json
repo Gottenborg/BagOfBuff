@@ -109,6 +109,8 @@
                       "name",
                       "description",
                       "priceCents",
+                      "compareAtCents",
+                      "lowestPriceCents30d",
                       "currency",
                       "stock",
                       "active",
@@ -138,6 +140,28 @@
                       },
                       "priceCents": {
                         "type": "number"
+                      },
+                      "compareAtCents": {
+                        "nullable": true,
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "lowestPriceCents30d": {
+                        "nullable": true,
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       },
                       "currency": {
                         "type": "string"
@@ -215,6 +239,28 @@
                       }
                     ]
                   },
+                  "compareAtCents": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "minimum": 0,
+                        "anyOf": [
+                          {
+                            "format": "integer",
+                            "default": 0,
+                            "type": "string"
+                          },
+                          {
+                            "minimum": 0,
+                            "type": "integer"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "currency": {
                     "minLength": 3,
                     "maxLength": 3,
@@ -279,6 +325,28 @@
                       {
                         "minimum": 0,
                         "type": "integer"
+                      }
+                    ]
+                  },
+                  "compareAtCents": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "minimum": 0,
+                        "anyOf": [
+                          {
+                            "format": "integer",
+                            "default": 0,
+                            "type": "string"
+                          },
+                          {
+                            "minimum": 0,
+                            "type": "integer"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
                       }
                     ]
                   },
@@ -349,6 +417,28 @@
                       }
                     ]
                   },
+                  "compareAtCents": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "minimum": 0,
+                        "anyOf": [
+                          {
+                            "format": "integer",
+                            "default": 0,
+                            "type": "string"
+                          },
+                          {
+                            "minimum": 0,
+                            "type": "integer"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "currency": {
                     "minLength": 3,
                     "maxLength": 3,
@@ -389,6 +479,8 @@
                     "name",
                     "description",
                     "priceCents",
+                    "compareAtCents",
+                    "lowestPriceCents30d",
                     "currency",
                     "stock",
                     "active",
@@ -418,6 +510,28 @@
                     },
                     "priceCents": {
                       "type": "number"
+                    },
+                    "compareAtCents": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "lowestPriceCents30d": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "currency": {
                       "type": "string"
@@ -528,6 +642,8 @@
                     "name",
                     "description",
                     "priceCents",
+                    "compareAtCents",
+                    "lowestPriceCents30d",
                     "currency",
                     "stock",
                     "active",
@@ -557,6 +673,28 @@
                     },
                     "priceCents": {
                       "type": "number"
+                    },
+                    "compareAtCents": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "lowestPriceCents30d": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "currency": {
                       "type": "string"
@@ -658,6 +796,28 @@
                       }
                     ]
                   },
+                  "compareAtCents": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "minimum": 0,
+                        "anyOf": [
+                          {
+                            "format": "integer",
+                            "default": 0,
+                            "type": "string"
+                          },
+                          {
+                            "minimum": 0,
+                            "type": "integer"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "currency": {
                     "minLength": 3,
                     "maxLength": 3,
@@ -717,6 +877,28 @@
                       {
                         "minimum": 0,
                         "type": "integer"
+                      }
+                    ]
+                  },
+                  "compareAtCents": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "minimum": 0,
+                        "anyOf": [
+                          {
+                            "format": "integer",
+                            "default": 0,
+                            "type": "string"
+                          },
+                          {
+                            "minimum": 0,
+                            "type": "integer"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
                       }
                     ]
                   },
@@ -782,6 +964,28 @@
                       }
                     ]
                   },
+                  "compareAtCents": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "minimum": 0,
+                        "anyOf": [
+                          {
+                            "format": "integer",
+                            "default": 0,
+                            "type": "string"
+                          },
+                          {
+                            "minimum": 0,
+                            "type": "integer"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "currency": {
                     "minLength": 3,
                     "maxLength": 3,
@@ -822,6 +1026,8 @@
                     "name",
                     "description",
                     "priceCents",
+                    "compareAtCents",
+                    "lowestPriceCents30d",
                     "currency",
                     "stock",
                     "active",
@@ -851,6 +1057,28 @@
                     },
                     "priceCents": {
                       "type": "number"
+                    },
+                    "compareAtCents": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "lowestPriceCents30d": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "currency": {
                       "type": "string"
@@ -977,6 +1205,8 @@
                     "name",
                     "description",
                     "priceCents",
+                    "compareAtCents",
+                    "lowestPriceCents30d",
                     "currency",
                     "stock",
                     "active",
@@ -1006,6 +1236,28 @@
                     },
                     "priceCents": {
                       "type": "number"
+                    },
+                    "compareAtCents": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "lowestPriceCents30d": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "currency": {
                       "type": "string"

@@ -21,6 +21,13 @@ export const products = pgTable("products", {
   description: text("description"),
   /** Unit price in minor units (e.g. cents) of `currency`. */
   priceCents: integer("price_cents").notNull(),
+  /**
+   * Reference ("regular") price when the current price is a promotional
+   * reduction. When set and greater than `priceCents`, the storefront shows the
+   * product as discounted and, per the EU Omnibus directive, the lowest price
+   * of the prior 30 days (derived from `product_price_history`).
+   */
+  compareAtCents: integer("compare_at_cents"),
   currency: text("currency").notNull().default("EUR"),
   /** Available stock. Physical goods, so we track inventory. */
   stock: integer("stock").notNull().default(0),
@@ -39,6 +46,27 @@ export const products = pgTable("products", {
 
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
+
+/**
+ * Append-only price history, written whenever a product's price is set or
+ * changed. Backs the EU Omnibus directive: on any promotional discount the
+ * storefront must show the lowest price of the preceding 30 days.
+ */
+export const productPriceHistory = pgTable("product_price_history", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  productId: text("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  priceCents: integer("price_cents").notNull(),
+  currency: text("currency").notNull().default("EUR"),
+  recordedAt: timestamp("recorded_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+}).enableRLS();
+
+export type ProductPriceHistory = typeof productPriceHistory.$inferSelect;
 
 /**
  * Back-office administrators. Keyed by the Supabase Auth user id (a UUID,
