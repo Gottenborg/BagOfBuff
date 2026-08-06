@@ -1,0 +1,27 @@
+# Bag of Buff back office (TanStack Start / Nitro SSR). Built from the monorepo
+# root. VITE_* values are inlined at build time:
+#   fly deploy --config fly.admin.toml \
+#     --build-arg VITE_API_URL=https://api.bagofbuff.com \
+#     --build-arg VITE_SUPABASE_URL=https://<ref>.supabase.co \
+#     --build-arg VITE_SUPABASE_ANON_KEY=<anon-key>
+FROM oven/bun:1.3.11 AS build
+WORKDIR /app
+COPY . .
+RUN bun install --frozen-lockfile
+
+ARG VITE_API_URL
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ENV VITE_API_URL=$VITE_API_URL \
+    VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
+    VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+
+RUN bunx turbo run build --filter=@repo/admin
+
+FROM node:22-slim AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
+COPY --from=build /app/apps/admin/.output ./.output
+EXPOSE 3000
+CMD ["node", ".output/server/index.mjs"]

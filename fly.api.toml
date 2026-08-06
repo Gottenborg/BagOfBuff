@@ -1,0 +1,26 @@
+# Fly config for the API. Deploy with: fly deploy --config fly.api.toml
+# NOTE: `app` must match the Fly app you created (`fly apps create bagofbuff-api`).
+app = "bagofbuff-api"
+primary_region = "fra"
+
+[build]
+  dockerfile = "Dockerfile.api"
+
+[env]
+  PORT = "3001"
+  # Runtime-only public config; secrets (DATABASE_URL, STRIPE_*, RESEND_*) are
+  # set separately with `fly secrets set --app bagofbuff-api …`.
+  SUPABASE_URL = "https://sumxigmxbtickbfkzrxf.supabase.co"
+  CORS_ORIGINS = "https://bagofbuff.com,https://www.bagofbuff.com,https://admin.bagofbuff.com"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  # Keep one machine warm: this app receives Stripe webhooks.
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
