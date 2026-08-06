@@ -42,10 +42,7 @@ function ProductDetail() {
         <Heading level={1} size={2}>
           {product.name}
         </Heading>
-        <p className="mt-2 text-xl font-semibold">
-          {formatPrice(product.priceCents, product.currency)}
-          <span className="ml-2 text-sm font-normal text-muted">incl. VAT</span>
-        </p>
+        <PriceBlock product={product} />
 
         {product.description && (
           <Text className="mt-4 text-ink-700">{product.description}</Text>
@@ -81,6 +78,48 @@ function ProductDetail() {
         <SubscribeOptions productId={product.id} />
       </Container>
     </>
+  );
+}
+
+/**
+ * VAT-inclusive price with EU compliance: when a product is on sale
+ * (`compareAtCents` above the current price) we show the reference price struck
+ * through and, per the Omnibus directive, the lowest price of the prior 30 days.
+ */
+function PriceBlock({
+  product,
+}: {
+  product: {
+    priceCents: number;
+    compareAtCents: number | null;
+    lowestPriceCents30d: number | null;
+    currency: string;
+  };
+}) {
+  const onSale =
+    product.compareAtCents !== null &&
+    product.compareAtCents > product.priceCents;
+
+  return (
+    <div className="mt-2">
+      <p className="text-xl font-semibold">
+        <span className={onSale ? "text-danger" : undefined}>
+          {formatPrice(product.priceCents, product.currency)}
+        </span>
+        {onSale && (
+          <span className="ml-2 text-base font-normal text-muted line-through">
+            {formatPrice(product.compareAtCents!, product.currency)}
+          </span>
+        )}
+        <span className="ml-2 text-sm font-normal text-muted">incl. VAT</span>
+      </p>
+      {onSale && product.lowestPriceCents30d !== null && (
+        <p className="mt-1 text-xs text-muted">
+          Lowest price in the last 30 days:{" "}
+          {formatPrice(product.lowestPriceCents30d, product.currency)}
+        </p>
+      )}
+    </div>
   );
 }
 

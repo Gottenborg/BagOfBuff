@@ -1,8 +1,49 @@
-import { eq } from "drizzle-orm";
+import { and, eq, gte, inArray, min } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { db } from "../../db";
-import { products, type Product } from "../../db/schema";
+import { productPriceHistory, products, type Product } from "../../db/schema";
 import { authPlugin, isAdmin } from "../auth/auth.plugin";
+
+/** Omnibus window: lowest price must reflect the prior 30 days. */
+const OMNIBUS_WINDOW_DAYS = 30;
+
+/** Append a price-history point (for Omnibus lowest-price computation). */
+async function recordPrice(product: Product) {
+  await db.insert(productPriceHistory).values({
+    productId: product.id,
+    priceCents: product.priceCents,
+    currency: product.currency,
+  });
+}
+
+/**
+ * Lowest recorded price per product over the Omnibus window. Returns a map of
+ * productId → lowest cents; products with no history in the window are absent.
+ */
+async function omnibusLowest(
+  productIds: string[],
+): Promise<Map<string, number>> {
+  if (productIds.length === 0) return new Map();
+  const since = new Date(Date.now() - OMNIBUS_WINDOW_DAYS * 24 * 3600 * 1000);
+  const rows = await db
+    .select({
+      productId: productPriceHistory.productId,
+      lowest: min(productPriceHistory.priceCents),
+    })
+    .from(productPriceHistory)
+    .where(
+      and(
+        inArray(productPriceHistory.productId, productIds),
+        gte(productPriceHistory.recordedAt, since),
+      ),
+    )
+    .groupBy(productPriceHistory.productId);
+  return new Map(
+    rows
+      .filter((r) => r.lowest !== null)
+      .map((r) => [r.productId, Number(r.lowest)]),
+  );
+}
 
 const Unauthorized = t.Object({ message: t.String() });
 const Forbidden = t.Object({ message: t.String() });
@@ -26,6 +67,10 @@ const ProductModel = t.Object({
   name: t.String(),
   description: t.Nullable(t.String()),
   priceCents: Int,
+  /** Regular price when discounted (compare-at); null when not on sale. */
+  compareAtCents: t.Nullable(Int),
+  /** EU Omnibus: lowest price in the prior 30 days, when known. */
+  lowestPriceCents30d: t.Nullable(Int),
   currency: t.String(),
   stock: Int,
   active: t.Boolean(),
@@ -41,6 +86,7 @@ const CreateProductBody = t.Object({
   name: t.String({ minLength: 1 }),
   description: t.Optional(t.Nullable(t.String())),
   priceCents: t.Integer({ minimum: 0 }),
+  compareAtCents: t.Optional(t.Nullable(t.Integer({ minimum: 0 }))),
   currency: t.Optional(t.String({ minLength: 3, maxLength: 3 })),
   stock: t.Optional(t.Integer({ minimum: 0 })),
   active: t.Optional(t.Boolean()),
@@ -53,15 +99,17 @@ const UpdateProductBody = t.Partial(
     name: t.String({ minLength: 1 }),
     description: t.Nullable(t.String()),
     priceCents: t.Integer({ minimum: 0 }),
+    compareAtCents: t.Nullable(t.Integer({ minimum: 0 })),
     currency: t.String({ minLength: 3, maxLength: 3 }),
     stock: t.Integer({ minimum: 0 }),
     active: t.Boolean(),
   }),
 );
 
-function serialize(p: Product) {
+function serialize(p: Product, lowestPriceCents30d: number | null = null) {
   return {
     ...p,
+    lowestPriceCents30d,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
   };
@@ -95,7 +143,8 @@ export const productsRoutes = new Elysia({
       const rows = showAll
         ? await db.select().from(products)
         : await db.select().from(products).where(eq(products.active, true));
-      return rows.map(serialize);
+      const lowest = await omnibusLowest(rows.map((p) => p.id));
+      return rows.map((p) => serialize(p, lowest.get(p.id) ?? null));
     },
     {
       query: t.Object({ includeInactive: t.Optional(t.Boolean()) }),
@@ -114,7 +163,8 @@ export const productsRoutes = new Elysia({
         .where(eq(products.slug, params.slug))
         .limit(1);
       if (!product) return status(404, { message: "Product not found" });
-      return serialize(product);
+      const lowest = await omnibusLowest([product.id]);
+      return serialize(product, lowest.get(product.id) ?? null);
     },
     {
       params: t.Object({ slug: t.String() }),
@@ -128,6 +178,7 @@ export const productsRoutes = new Elysia({
     async ({ body, status }) => {
       try {
         const [created] = await db.insert(products).values(body).returning();
+        await recordPrice(created!); // seed Omnibus price history
         return status(201, serialize(created!));
       } catch (err) {
         if (isUniqueViolation(err)) {
@@ -158,12 +209,21 @@ export const productsRoutes = new Elysia({
     "/:id",
     async ({ params, body, status }) => {
       try {
+        // Capture the prior price so we only append history on a real change.
+        const [before] = await db
+          .select({ priceCents: products.priceCents })
+          .from(products)
+          .where(eq(products.id, params.id))
+          .limit(1);
         const [updated] = await db
           .update(products)
           .set({ ...body, updatedAt: new Date() })
           .where(eq(products.id, params.id))
           .returning();
         if (!updated) return status(404, { message: "Product not found" });
+        if (before && before.priceCents !== updated.priceCents) {
+          await recordPrice(updated); // Omnibus: record the new price point
+        }
         return serialize(updated);
       } catch (err) {
         if (isUniqueViolation(err)) {
