@@ -30,6 +30,9 @@
     "lint": {
       "dependsOn": ["^lint"]
     },
+    "test": {
+      "dependsOn": ["^build"]
+    },
     "check-types": {
       "dependsOn": ["^check-types", "generate-routes"]
     },
