@@ -8,6 +8,7 @@
     "start": "bun src/index.ts",
     "build": "bun build src/index.ts --target bun --outdir dist",
     "lint": "eslint .",
+    "test": "bun test",
     "check-types": "tsc --noEmit",
     "openapi:export": "bun scripts/export-openapi.ts",
     "db:generate": "drizzle-kit generate",

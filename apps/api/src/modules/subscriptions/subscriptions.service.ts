@@ -14,8 +14,6 @@ import { env } from "../../lib/env";
 import { getStripe } from "../../lib/stripe";
 import { sendPortalLink } from "../../lib/email";
 
-const TAX_CODE_GOODS = "txcd_99999999";
-
 export type PlanInterval = "week" | "month";
 
 export interface CreatePlanInput {
