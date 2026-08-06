@@ -43,6 +43,13 @@
       "when": 1785992795176,
       "tag": "0005_motionless_pride",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785994687141,
+      "tag": "0006_stale_runaways",
+      "breakpoints": true
     }
   ]
 }

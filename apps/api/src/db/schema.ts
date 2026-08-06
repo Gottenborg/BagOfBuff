@@ -144,6 +144,13 @@ export const orders = pgTable("orders", {
   shippingRateId: text("shipping_rate_id"),
   shippingRateName: text("shipping_rate_name"),
   /**
+   * How the order was placed: a one-off checkout, or a recurring subscription
+   * cycle. Subscription cycles reuse this table so the back office manages them
+   * with the same views; `subscriptionId` links back to the subscription.
+   */
+  origin: text("origin").notNull().default("one_time"),
+  subscriptionId: text("subscription_id"),
+  /**
    * Fulfillment workflow, independent of payment `status`: new → packed →
    * shipped. Back office advances this and records tracking; it stays "new"
    * until someone in the warehouse acts on the order.
@@ -197,3 +204,75 @@ export const orderItems = pgTable("order_items", {
 
 export type OrderItem = typeof orderItems.$inferSelect;
 export type NewOrderItem = typeof orderItems.$inferInsert;
+
+/**
+ * Subscription plans ("subscribe & save") for a product. Each plan maps to a
+ * recurring Stripe Price (created in Stripe when the plan is created); we store
+ * the Stripe product/price ids so checkout and Billing stay in sync. Interval
+ * is a Stripe billing interval (`week`/`month`) times `intervalCount`.
+ */
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  productId: text("product_id")
+    .notNull()
+    .references(() => products.id),
+  name: text("name").notNull(),
+  interval: text("interval").notNull().default("month"),
+  intervalCount: integer("interval_count").notNull().default(1),
+  priceCents: integer("price_cents").notNull(),
+  currency: text("currency").notNull().default("EUR"),
+  stripeProductId: text("stripe_product_id"),
+  stripePriceId: text("stripe_price_id").unique(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+}).enableRLS();
+
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+export type NewSubscriptionPlan = typeof subscriptionPlans.$inferInsert;
+
+/**
+ * A customer subscription, mirrored from Stripe Billing. Stripe is the source
+ * of truth for lifecycle (status, period, cancellation); we keep a local copy
+ * so the storefront/back office don't need a Stripe round-trip, and so each
+ * `invoice.paid` cycle can spawn a fulfillment order from the stored address.
+ */
+export const subscriptions = pgTable("subscriptions", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  /** Stripe Subscription id — unique, so webhook handling is idempotent. */
+  stripeSubscriptionId: text("stripe_subscription_id").notNull().unique(),
+  stripeCustomerId: text("stripe_customer_id"),
+  planId: text("plan_id"),
+  productId: text("product_id"),
+  email: text("email"),
+  /** active | past_due | canceled | incomplete | unpaid (from Stripe). */
+  status: text("status").notNull().default("incomplete"),
+  currency: text("currency").notNull().default("EUR"),
+  amountCents: integer("amount_cents"),
+  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  // Ship-to address captured at subscribe time, reused for each cycle's order.
+  shipName: text("ship_name"),
+  shipLine1: text("ship_line1"),
+  shipLine2: text("ship_line2"),
+  shipCity: text("ship_city"),
+  shipPostalCode: text("ship_postal_code"),
+  shipCountry: text("ship_country"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+}).enableRLS();
+
+export type Subscription = typeof subscriptions.$inferSelect;
+export type NewSubscription = typeof subscriptions.$inferInsert;

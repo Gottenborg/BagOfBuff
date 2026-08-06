@@ -10,13 +10,21 @@ export function SiteHeader() {
         <Link to="/" aria-label="Bag of Buff home">
           <Logo />
         </Link>
-        <Link
-          to="/checkout"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-muted transition-colors hover:text-foreground"
-        >
-          Cart
-          {count > 0 && <Badge variant="brand">{count}</Badge>}
-        </Link>
+        <nav className="flex items-center gap-5">
+          <Link
+            to="/account"
+            className="text-sm font-semibold text-muted transition-colors hover:text-foreground"
+          >
+            Account
+          </Link>
+          <Link
+            to="/checkout"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-muted transition-colors hover:text-foreground"
+          >
+            Cart
+            {count > 0 && <Badge variant="brand">{count}</Badge>}
+          </Link>
+        </nav>
       </Container>
     </header>
   );

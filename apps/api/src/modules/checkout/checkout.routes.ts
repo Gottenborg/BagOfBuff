@@ -10,6 +10,12 @@ import {
   expireCheckoutSession,
   fulfillCheckoutSession,
 } from "./checkout.service";
+import {
+  handleInvoicePaid,
+  handleInvoicePaymentFailed,
+  handleSubscriptionCheckoutCompleted,
+  syncSubscription,
+} from "../subscriptions/subscriptions.service";
 
 const Message = t.Object({ message: t.String() });
 const Int = t.Number();
@@ -119,10 +125,27 @@ export const checkoutRoutes = new Elysia({
 
       switch (event.type) {
         case "checkout.session.completed":
-          await fulfillCheckoutSession(event.data.object);
+          // One-time payments fulfill an order; subscription-mode sessions
+          // create the local subscription (cycles are handled by invoice.paid).
+          if (event.data.object.mode === "subscription") {
+            await handleSubscriptionCheckoutCompleted(event.data.object);
+          } else {
+            await fulfillCheckoutSession(event.data.object);
+          }
           break;
         case "checkout.session.expired":
           await expireCheckoutSession(event.data.object);
+          break;
+        case "invoice.paid":
+          // Each paid subscription cycle spawns a fulfillment order.
+          await handleInvoicePaid(event.data.object);
+          break;
+        case "invoice.payment_failed":
+          await handleInvoicePaymentFailed(event.data.object);
+          break;
+        case "customer.subscription.updated":
+        case "customer.subscription.deleted":
+          await syncSubscription(event.data.object);
           break;
         default:
           // Unhandled event types are acknowledged so Stripe stops retrying.
