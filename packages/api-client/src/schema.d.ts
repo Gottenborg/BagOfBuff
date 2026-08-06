@@ -250,6 +250,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/orders/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List orders (admin) */
+        get: operations["getAdminOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an order with its items (admin) */
+        get: operations["getAdminOrdersById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/orders/{id}/fulfillment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update fulfillment status / tracking (admin) */
+        patch: operations["patchAdminOrdersByIdFulfillment"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1542,6 +1593,261 @@ export interface operations {
                             currency: string;
                             quantity: number;
                         }[];
+                    };
+                };
+            };
+            /** @description Response for status 404 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getAdminOrders: {
+        parameters: {
+            query?: {
+                status?: "paid" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        status: string;
+                        fulfillmentStatus: string;
+                        email: (string | null) | null;
+                        currency: string;
+                        totalCents: (number | null) | null;
+                        itemCount: number;
+                        shipCountry: (string | null) | null;
+                        shippingRateName: (string | null) | null;
+                        trackingNumber: (string | null) | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        paidAt: (string | null) | null;
+                    }[];
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getAdminOrdersById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        status: string;
+                        fulfillmentStatus: string;
+                        email: (string | null) | null;
+                        currency: string;
+                        subtotalCents: number;
+                        shippingCents: number;
+                        taxCents: (number | null) | null;
+                        totalCents: (number | null) | null;
+                        shippingRateName: (string | null) | null;
+                        trackingCarrier: (string | null) | null;
+                        trackingNumber: (string | null) | null;
+                        ship: {
+                            name: (string | null) | null;
+                            line1: (string | null) | null;
+                            line2: (string | null) | null;
+                            city: (string | null) | null;
+                            postalCode: (string | null) | null;
+                            country: (string | null) | null;
+                        };
+                        items: {
+                            id: string;
+                            slug: string;
+                            name: string;
+                            unitPriceCents: number;
+                            currency: string;
+                            quantity: number;
+                        }[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        paidAt: (string | null) | null;
+                        shippedAt: (string | null) | null;
+                    };
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 404 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    patchAdminOrdersByIdFulfillment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    fulfillmentStatus?: "new" | "packed" | "shipped";
+                    trackingCarrier?: (string | null) | null;
+                    trackingNumber?: (string | null) | null;
+                };
+                "application/x-www-form-urlencoded": {
+                    /** @enum {string} */
+                    fulfillmentStatus?: "new" | "packed" | "shipped";
+                    trackingCarrier?: (string | null) | null;
+                    trackingNumber?: (string | null) | null;
+                };
+                "multipart/form-data": {
+                    /** @enum {string} */
+                    fulfillmentStatus?: "new" | "packed" | "shipped";
+                    trackingCarrier?: (string | null) | null;
+                    trackingNumber?: (string | null) | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        status: string;
+                        fulfillmentStatus: string;
+                        email: (string | null) | null;
+                        currency: string;
+                        subtotalCents: number;
+                        shippingCents: number;
+                        taxCents: (number | null) | null;
+                        totalCents: (number | null) | null;
+                        shippingRateName: (string | null) | null;
+                        trackingCarrier: (string | null) | null;
+                        trackingNumber: (string | null) | null;
+                        ship: {
+                            name: (string | null) | null;
+                            line1: (string | null) | null;
+                            line2: (string | null) | null;
+                            city: (string | null) | null;
+                            postalCode: (string | null) | null;
+                            country: (string | null) | null;
+                        };
+                        items: {
+                            id: string;
+                            slug: string;
+                            name: string;
+                            unitPriceCents: number;
+                            currency: string;
+                            quantity: number;
+                        }[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        paidAt: (string | null) | null;
+                        shippedAt: (string | null) | null;
+                    };
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
                     };
                 };
             };

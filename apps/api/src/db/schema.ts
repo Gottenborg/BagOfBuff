@@ -143,6 +143,15 @@ export const orders = pgTable("orders", {
   /** Chosen shipping rate (name captured for the order record). */
   shippingRateId: text("shipping_rate_id"),
   shippingRateName: text("shipping_rate_name"),
+  /**
+   * Fulfillment workflow, independent of payment `status`: new → packed →
+   * shipped. Back office advances this and records tracking; it stays "new"
+   * until someone in the warehouse acts on the order.
+   */
+  fulfillmentStatus: text("fulfillment_status").notNull().default("new"),
+  trackingCarrier: text("tracking_carrier"),
+  trackingNumber: text("tracking_number"),
+  shippedAt: timestamp("shipped_at", { withTimezone: true }),
   // Ship-to address, captured at checkout (Stripe collects/confirms it).
   shipName: text("ship_name"),
   shipLine1: text("ship_line1"),
