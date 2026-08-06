@@ -6,33 +6,23 @@ import {
   Button,
   Card,
   CardContent,
-  Container,
   Field,
-  Heading,
   Input,
   Loading,
-  Logo,
   Text,
 } from "@repo/ui";
-import { LoginForm } from "../components/login-form";
-import { useSession, signOut } from "../lib/auth";
+import { AdminShell } from "../components/admin-shell";
+import { formatPrice } from "../lib/format";
 import { api } from "../lib/api";
 
 export const Route = createFileRoute("/")({ component: AdminRoot });
 
-function formatPrice(cents: number, currency: string) {
-  return new Intl.NumberFormat("en-IE", {
-    style: "currency",
-    currency,
-  }).format(cents / 100);
-}
-
-/** Auth gate: show the login form until there's a session. */
 function AdminRoot() {
-  const { session, loading } = useSession();
-  if (loading) return <Loading className="p-8" />;
-  if (!session) return <LoginForm />;
-  return <Dashboard />;
+  return (
+    <AdminShell subtitle="Manage the Bag of Buff catalogue.">
+      <Dashboard />
+    </AdminShell>
+  );
 }
 
 function Dashboard() {
@@ -64,24 +54,7 @@ function Dashboard() {
   });
 
   return (
-    <Container as="main" size="xl" className="py-10">
-      <header className="mb-8 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Logo markOnly />
-          <div>
-            <Heading level={1} size={3}>
-              Back office
-            </Heading>
-            <Text muted className="text-sm">
-              Manage the Bag of Buff catalogue.
-            </Text>
-          </div>
-        </div>
-        <Button variant="ghost" onClick={() => signOut()}>
-          Sign out
-        </Button>
-      </header>
-
+    <>
       <NewProductForm
         onCreated={() =>
           queryClient.invalidateQueries({ queryKey: ["products", "all"] })
@@ -152,7 +125,7 @@ function Dashboard() {
           </table>
         </Card>
       )}
-    </Container>
+    </>
   );
 }
 

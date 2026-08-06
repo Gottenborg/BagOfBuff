@@ -36,6 +36,13 @@
       "when": 1785963297632,
       "tag": "0004_harsh_silver_centurion",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785992795176,
+      "tag": "0005_motionless_pride",
+      "breakpoints": true
     }
   ]
 }
