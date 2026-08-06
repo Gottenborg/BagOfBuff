@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { Badge, Button, Container, Heading, Text } from "@repo/ui";
+import { Badge, Button, Card, Container, Heading, Text } from "@repo/ui";
 import { SiteHeader } from "../components/site-header";
 import { addToCart } from "../lib/cart";
-import { formatPrice } from "../lib/format";
+import { formatInterval, formatPrice } from "../lib/format";
 import { api } from "../lib/api";
 
 export const Route = createFileRoute("/products/$slug")({
@@ -76,7 +77,77 @@ function ProductDetail() {
           </Button>
           {added && <span className="text-sm text-success">Added ✓</span>}
         </div>
+
+        <SubscribeOptions productId={product.id} />
       </Container>
     </>
+  );
+}
+
+/**
+ * Subscribe & save. Shown only when the product has active subscription plans.
+ * Clicking a plan opens a Stripe subscription checkout.
+ */
+function SubscribeOptions({ productId }: { productId: string }) {
+  const [pendingPlan, setPendingPlan] = useState<string | null>(null);
+
+  const { data: plans } = useQuery({
+    queryKey: ["plans", productId],
+    queryFn: async () => {
+      const { data, error } = await api.GET("/subscription-plans", {
+        params: { query: { productId } },
+      });
+      if (error) return [];
+      return data;
+    },
+  });
+
+  if (!plans || plans.length === 0) return null;
+
+  async function subscribe(planId: string) {
+    setPendingPlan(planId);
+    const { data, error } = await api.POST("/checkout/subscription", {
+      body: { planId },
+    });
+    if (error || !data) {
+      setPendingPlan(null);
+      return;
+    }
+    window.location.href = data.url;
+  }
+
+  return (
+    <Card className="mt-10 p-5">
+      <Heading level={2} size={4}>
+        Subscribe &amp; save
+      </Heading>
+      <Text muted className="mt-1 text-sm">
+        Never run out. Cancel anytime.
+      </Text>
+      <ul className="mt-4 space-y-2">
+        {plans.map((plan) => (
+          <li
+            key={plan.id}
+            className="flex items-center justify-between rounded-md border border-border p-3"
+          >
+            <span>
+              <span className="font-medium">{plan.name}</span>
+              <span className="ml-2 text-sm text-muted">
+                {formatPrice(plan.priceCents, plan.currency)}{" "}
+                {formatInterval(plan.interval, plan.intervalCount)}
+              </span>
+            </span>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={pendingPlan !== null}
+              onClick={() => subscribe(plan.id)}
+            >
+              {pendingPlan === plan.id ? "Redirecting…" : "Subscribe"}
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </Card>
   );
 }

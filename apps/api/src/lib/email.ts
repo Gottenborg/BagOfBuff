@@ -79,6 +79,59 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/** Low-level send. Returns whether an email was actually dispatched; never
+ * throws so webhook handlers stay resilient. */
+async function send(
+  to: string,
+  subject: string,
+  html: string,
+): Promise<boolean> {
+  if (!env.RESEND_API_KEY) {
+    console.log(`✉️  [email disabled] "${subject}" would go to ${to}`);
+    return false;
+  }
+  try {
+    const res = await fetch(RESEND_ENDPOINT, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ from: env.ORDER_FROM_EMAIL, to, subject, html }),
+    });
+    if (!res.ok) {
+      console.error(`Resend send failed (${subject}): ${res.status}`);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error(`Resend send threw (${subject}):`, err);
+    return false;
+  }
+}
+
+/**
+ * Emails a customer their Stripe Billing portal link (manage / cancel a
+ * subscription, update payment method). The link is a Stripe-hosted session URL.
+ */
+export async function sendPortalLink(
+  email: string,
+  portalUrl: string,
+): Promise<boolean> {
+  const html = `<!doctype html>
+<html>
+  <body style="font-family:system-ui,sans-serif;color:#111;max-width:520px;margin:0 auto;">
+    <h1 style="font-size:20px;">Manage your subscription</h1>
+    <p>Use the secure link below to manage or cancel your Bag of Buff subscription and update your payment details.</p>
+    <p style="margin:24px 0;">
+      <a href="${portalUrl}" style="background:#111;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;">Open subscription portal</a>
+    </p>
+    <p style="color:#666;font-size:13px;">This link expires after a short while. If you didn't request it, you can ignore this email.</p>
+  </body>
+</html>`;
+  return send(email, "Manage your Bag of Buff subscription", html);
+}
+
 /**
  * Sends the order confirmation email. Never throws — email failures must not
  * fail the webhook (Stripe would retry and we'd double-process). Returns

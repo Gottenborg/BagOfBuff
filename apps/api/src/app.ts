@@ -7,6 +7,7 @@ import { checkoutRoutes } from "./modules/checkout/checkout.routes";
 import { ordersRoutes } from "./modules/orders/orders.routes";
 import { productsRoutes } from "./modules/products/products.routes";
 import { shippingRoutes } from "./modules/shipping/shipping.routes";
+import { subscriptionsRoutes } from "./modules/subscriptions/subscriptions.routes";
 
 /**
  * The Elysia application. Exported separately from the server bootstrap so it
@@ -33,6 +34,7 @@ export const app = new Elysia()
   .use(productsRoutes)
   .use(shippingRoutes)
   .use(checkoutRoutes)
-  .use(ordersRoutes);
+  .use(ordersRoutes)
+  .use(subscriptionsRoutes);
 
 export type App = typeof app;

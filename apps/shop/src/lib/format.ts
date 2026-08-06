@@ -5,3 +5,8 @@ export function formatPrice(cents: number, currency: string): string {
     currency,
   }).format(cents / 100);
 }
+
+/** Human billing cadence, e.g. "every month" or "every 2 weeks". */
+export function formatInterval(interval: string, count: number): string {
+  return count === 1 ? `every ${interval}` : `every ${count} ${interval}s`;
+}
