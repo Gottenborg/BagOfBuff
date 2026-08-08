@@ -108,8 +108,33 @@ Schema changes are applied to Supabase directly (`bun run db:migrate` against
 `DATABASE_URL`, or via the Supabase dashboard) — they are **not** part of the Fly
 deploy. Migrations `0000`–`0007` are already applied.
 
+## Continuous deployment (from Git)
+
+`.github/workflows/deploy.yml` deploys all three apps automatically on every
+push to the trunk branch (`claude/back-of-buff-monorepo-turbo-kw3k23`), and can
+be run manually from the Actions tab. It verifies the build/type-check/lint/test
+first, then uses Fly **remote builders** (no Docker in the runner).
+
+One-time setup:
+
+1. Create a deploy token:
+   ```bash
+   fly tokens create deploy -x 999999h
+   ```
+2. Add it as a GitHub repo secret named **`FLY_API_TOKEN`**
+   (Settings → Secrets and variables → Actions → New repository secret).
+
+That's the only secret the workflow needs. The public `VITE_*` build values live
+in the workflow's `env:` block (they ship to the browser, so they aren't
+secrets); update them there if the domain or Supabase project changes. Per-app
+runtime secrets (`DATABASE_URL`, `STRIPE_*`, `RESEND_*`) are still set once with
+`fly secrets` as above — the pipeline does not manage those.
+
+The Fly apps must already exist (`fly apps create …`) before the first run.
+
 ## Redeploys
 
-Re-run the relevant `fly deploy …` command. For the Vite apps, always pass the
+Push to trunk (CD handles it), trigger the **Deploy** workflow manually, or run
+the relevant `fly deploy …` command locally. For the Vite apps, always pass the
 same `--build-arg` values (they bake into the bundle). CI (build + type-check +
 lint + test) gates every PR before it reaches the deploy branch.

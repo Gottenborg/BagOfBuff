@@ -1,0 +1,72 @@
+name: Deploy
+
+# Continuous deployment to Fly.io. Runs after code lands on the trunk branch,
+# and can be triggered manually. Requires a repo secret `FLY_API_TOKEN`
+# (Settings → Secrets and variables → Actions). Create one with:
+#   fly tokens create deploy -x 999999h
+#
+# The Fly apps and their non-CI config (DATABASE_URL, STRIPE_*, RESEND_* set via
+# `fly secrets`, and the custom domains/certs) are provisioned once out of band;
+# see docs/deploy.md.
+
+on:
+  push:
+    branches: [claude/back-of-buff-monorepo-turbo-kw3k23]
+    # Skip deploys for docs-only / CI-only changes.
+    paths-ignore:
+      - "**/*.md"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+# Never cancel an in-flight deploy; queue the next one instead.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+# Public build-time config for the Vite apps (these values ship to the browser,
+# so they are not secrets). Change here if the domain or Supabase project moves.
+env:
+  VITE_API_URL: https://api.bagofbuff.com
+  VITE_PLAUSIBLE_DOMAIN: bagofbuff.com
+  VITE_SUPABASE_URL: https://sumxigmxbtickbfkzrxf.supabase.co
+  VITE_SUPABASE_ANON_KEY: sb_publishable_KiK7c2Csf73Vtdil9J155A_t3KR320l
+
+jobs:
+  # Gate: don't ship code that doesn't build/type-check/lint/test.
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+      - run: bun install --frozen-lockfile
+      - run: bun run ci
+
+  deploy:
+    name: deploy to Fly
+    needs: verify
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      # Remote builders do the Docker build on Fly, so the runner needs no Docker.
+      - name: Deploy API
+        run: flyctl deploy --config fly.api.toml --remote-only
+
+      - name: Deploy storefront
+        run: |
+          flyctl deploy --config fly.shop.toml --remote-only \
+            --build-arg VITE_API_URL="$VITE_API_URL" \
+            --build-arg VITE_PLAUSIBLE_DOMAIN="$VITE_PLAUSIBLE_DOMAIN"
+
+      - name: Deploy back office
+        run: |
+          flyctl deploy --config fly.admin.toml --remote-only \
+            --build-arg VITE_API_URL="$VITE_API_URL" \
+            --build-arg VITE_SUPABASE_URL="$VITE_SUPABASE_URL" \
+            --build-arg VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY"
