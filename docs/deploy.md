@@ -6,8 +6,8 @@ Supabase:
 | Fly app | Source | Runtime | Domain |
 | --- | --- | --- | --- |
 | `bagofbuff-api` | `apps/api` | Bun / Elysia | `api.bagofbuff.com` |
-| `bagofbuff-shop` | `apps/shop` | Node / Nitro (SSR) | `bagofbuff.com`, `www.` |
-| `bagofbuff-admin` | `apps/admin` | Node / Nitro (SSR) | `admin.bagofbuff.com` |
+| `bagofbuff-shop` | `apps/shop` | Bun / Nitro (SSR) | `bagofbuff.com`, `www.` |
+| `bagofbuff-admin` | `apps/admin` | Bun / Nitro (SSR) | `admin.bagofbuff.com` |
 
 Postgres stays on **Supabase** — no Fly Postgres needed. Config lives at the repo
 root: `Dockerfile.{api,shop,admin}` + `fly.{api,shop,admin}.toml`.
