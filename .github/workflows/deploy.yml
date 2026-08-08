@@ -26,7 +26,9 @@ concurrency:
 # Public build-time config for the Vite apps (these values ship to the browser,
 # so they are not secrets). Change here if the domain or Supabase project moves.
 env:
-  VITE_API_URL: https://api.bagofbuff.com
+  # Point the front-ends at the live API. Switch to https://api.bagofbuff.com
+  # once the custom domain's DNS + cert are in place.
+  VITE_API_URL: https://bagofbuff-api.fly.dev
   VITE_PLAUSIBLE_DOMAIN: bagofbuff.com
   VITE_SUPABASE_URL: https://sumxigmxbtickbfkzrxf.supabase.co
   VITE_SUPABASE_ANON_KEY: sb_publishable_KiK7c2Csf73Vtdil9J155A_t3KR320l
