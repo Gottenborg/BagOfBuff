@@ -15,8 +15,9 @@ primary_region = "fra"
   force_https = true
   auto_stop_machines = "stop"
   auto_start_machines = true
-  # Keep the storefront warm to avoid cold-start latency for shoppers.
-  min_machines_running = 1
+  # Scale to zero when idle to minimise cost; first visitor after idle gets a
+  # ~1-2s cold start. Bump to 1 later if you want the storefront always warm.
+  min_machines_running = 0
 
 [[vm]]
   size = "shared-cpu-1x"
