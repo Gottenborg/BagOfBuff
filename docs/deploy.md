@@ -132,6 +132,35 @@ runtime secrets (`DATABASE_URL`, `STRIPE_*`, `RESEND_*`) are still set once with
 
 The Fly apps must already exist (`fly apps create …`) before the first run.
 
+## Storefront on Cloudflare Pages (cheaper hosting)
+
+To cut hosting cost, the **public storefront** can run on **Cloudflare Pages**
+(free tier, commercial use allowed, edge SSR) instead of Fly.
+`.github/workflows/deploy-cloudflare.yml` builds `apps/shop` with the Nitro
+`cloudflare_pages` preset and deploys it to Pages on every push to trunk.
+
+Split rationale:
+
+- **Storefront → Cloudflare Pages.** SSR; builds cleanly for Cloudflare; gets the
+  most benefit from free edge hosting.
+- **Back office → stays on Fly.** It runs in SPA mode, whose shell-prerender step
+  isn't compatible with the Cloudflare build. Low traffic, ~free at scale-to-zero.
+- **API → stays on Fly.** Holds a Postgres TCP connection (not supported on
+  Cloudflare Workers without Hyperdrive / a driver change).
+
+One-time setup:
+
+1. Create a Cloudflare API token with **Pages: Edit** permission, and note your
+   **account ID**.
+2. Add both as GitHub repo secrets: **`CLOUDFLARE_API_TOKEN`** and
+   **`CLOUDFLARE_ACCOUNT_ID`**. The Pages project (`bagofbuff-shop`) is created
+   on the first run.
+
+The storefront is then served at `https://bagofbuff-shop.pages.dev` (already in
+the API's `CORS_ORIGINS`). Point the apex/`www` DNS at Pages instead of Fly when
+you move the custom domain. Once verified, you can drop the storefront from the
+Fly deploy workflow and delete its Fly app.
+
 ## Redeploys
 
 Push to trunk (CD handles it), trigger the **Deploy** workflow manually, or run

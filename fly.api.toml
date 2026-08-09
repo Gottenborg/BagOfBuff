@@ -11,7 +11,7 @@ primary_region = "fra"
   # Runtime-only public config; secrets (DATABASE_URL, STRIPE_*, RESEND_*) are
   # set separately with `fly secrets set --app bagofbuff-api …`.
   SUPABASE_URL = "https://sumxigmxbtickbfkzrxf.supabase.co"
-  CORS_ORIGINS = "https://bagofbuff.com,https://www.bagofbuff.com,https://admin.bagofbuff.com,https://bagofbuff-shop.fly.dev,https://bagofbuff-admin.fly.dev"
+  CORS_ORIGINS = "https://bagofbuff.com,https://www.bagofbuff.com,https://admin.bagofbuff.com,https://bagofbuff-shop.fly.dev,https://bagofbuff-admin.fly.dev,https://bagofbuff-shop.pages.dev"
 
 [http_service]
   internal_port = 3001
