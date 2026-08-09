@@ -1,0 +1,67 @@
+name: Deploy storefront (Cloudflare Pages)
+
+# Deploys the public storefront to Cloudflare Pages — free tier, commercial use
+# allowed, edge SSR. The back office stays on Fly (it runs in SPA mode, whose
+# shell-prerender step isn't compatible with the Cloudflare build), and the API
+# stays on Fly (it holds a Postgres TCP connection).
+#
+# Requires two repo secrets:
+#   CLOUDFLARE_API_TOKEN   (Pages:Edit permission)
+#   CLOUDFLARE_ACCOUNT_ID
+# The Pages project is created on first run if it doesn't exist. Same source as
+# the Fly build — only the Nitro preset differs — so no app changes.
+
+on:
+  push:
+    branches: [claude/back-of-buff-monorepo-turbo-kw3k23]
+    paths-ignore:
+      - "**/*.md"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-cf-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Build for Cloudflare's runtime (workerd) instead of the Node/Bun server.
+  NITRO_PRESET: cloudflare_pages
+  # Public, browser-shipped build config (not secrets). Point at the live API;
+  # switch to https://api.bagofbuff.com once its DNS + cert are up.
+  VITE_API_URL: https://bagofbuff-api.fly.dev
+  VITE_PLAUSIBLE_DOMAIN: bagofbuff.com
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+      - run: bun install --frozen-lockfile
+      - run: bun run ci
+
+  deploy:
+    name: deploy storefront to Cloudflare Pages
+    needs: verify
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+      - run: bun install --frozen-lockfile
+
+      - name: Build storefront (Cloudflare preset)
+        working-directory: apps/shop
+        run: bun run generate-routes && bunx vite build
+
+      - name: Deploy to Cloudflare Pages
+        run: |
+          bunx wrangler@3 pages project create bagofbuff-shop --production-branch=main 2>/dev/null || true
+          bunx wrangler@3 pages deploy apps/shop/dist --project-name=bagofbuff-shop --branch=main
