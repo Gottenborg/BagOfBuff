@@ -12,6 +12,7 @@ import {
   Text,
 } from "@repo/ui";
 import { AdminShell } from "../components/admin-shell";
+import { apiErrorMessage } from "../lib/errors";
 import { formatPrice } from "../lib/format";
 import { api } from "../lib/api";
 
@@ -64,7 +65,8 @@ function Dashboard() {
       {isLoading && <Loading className="mt-8" />}
       {isError && (
         <Text className="mt-8 text-danger">
-          Could not reach the API. Is it running on port 3001?
+          Could not load the catalogue. The API is unreachable or its database
+          is down — check <code>/health</code> on the API for details.
         </Text>
       )}
 
@@ -137,7 +139,7 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
 
   const create = useMutation({
     mutationFn: async () => {
-      const { error } = await api.POST("/products/", {
+      const { error, response } = await api.POST("/products/", {
         body: {
           slug,
           name,
@@ -145,7 +147,10 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
           stock: stock ? Number(stock) : 0,
         },
       });
-      if (error) throw new Error("Failed to create product");
+      if (error)
+        throw new Error(
+          apiErrorMessage(error, response, "Could not create product."),
+        );
     },
     onSuccess: () => {
       setSlug("");
@@ -207,7 +212,7 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
           </Button>
           {create.isError && (
             <p className="w-full text-sm text-danger">
-              Could not create product (are you signed in as an admin?).
+              {create.error.message}
             </p>
           )}
         </form>

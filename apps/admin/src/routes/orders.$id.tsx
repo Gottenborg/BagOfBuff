@@ -13,6 +13,7 @@ import {
   Text,
 } from "@repo/ui";
 import { AdminShell } from "../components/admin-shell";
+import { apiErrorMessage } from "../lib/errors";
 import { formatDate, formatPrice } from "../lib/format";
 import { api } from "../lib/api";
 
@@ -61,11 +62,14 @@ function OrderDetail() {
       trackingCarrier?: string | null;
       trackingNumber?: string | null;
     }) => {
-      const { error } = await api.PATCH("/admin/orders/{id}/fulfillment", {
-        params: { path: { id } },
-        body,
-      });
-      if (error) throw new Error("Failed to update fulfillment");
+      const { error, response } = await api.PATCH(
+        "/admin/orders/{id}/fulfillment",
+        { params: { path: { id } }, body },
+      );
+      if (error)
+        throw new Error(
+          apiErrorMessage(error, response, "Could not update fulfillment."),
+        );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order", id] });
@@ -268,9 +272,7 @@ function OrderDetail() {
           </form>
 
           {update.isError && (
-            <Text className="text-danger">
-              Could not update. Are you signed in as an admin?
-            </Text>
+            <Text className="text-danger">{update.error.message}</Text>
           )}
         </CardContent>
       </Card>

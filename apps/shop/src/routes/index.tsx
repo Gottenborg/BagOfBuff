@@ -36,7 +36,8 @@ function Home() {
         {isLoading && <Loading>Loading products…</Loading>}
         {isError && (
           <Text className="text-danger">
-            Could not reach the API. Is it running on port 3001?
+            We couldn't load the products right now. Please refresh, or try
+            again in a moment.
           </Text>
         )}
 

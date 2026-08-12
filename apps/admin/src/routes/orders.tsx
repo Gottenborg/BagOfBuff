@@ -64,7 +64,8 @@ function OrdersList() {
       {isLoading && <Loading />}
       {isError && (
         <Text className="text-danger">
-          Could not reach the API. Is it running on port 3001?
+          Could not load orders. The API is unreachable or its database is down
+          — check <code>/health</code> on the API for details.
         </Text>
       )}
 
