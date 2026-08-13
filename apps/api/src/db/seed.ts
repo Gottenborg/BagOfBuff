@@ -12,6 +12,7 @@ import { products, shippingRates, shippingZones } from "./schema";
 
 const launchProduct = {
   slug: "bag-of-buff",
+  sku: "BAG-OF-BUFF",
   name: "Bag of Buff",
   description:
     "The original Bag of Buff. Placeholder copy — edit this in the back office.",

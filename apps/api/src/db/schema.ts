@@ -17,6 +17,12 @@ export const products = pgTable("products", {
     .primaryKey()
     .$defaultFn(() => nanoid()),
   slug: text("slug").notNull().unique(),
+  /**
+   * Stock-keeping unit — the identifier used for inventory, packing lists and
+   * accounting. Unique and required: an order line without a SKU can't be
+   * picked reliably in a warehouse.
+   */
+  sku: text("sku").notNull().unique(),
   name: text("name").notNull(),
   description: text("description"),
   /** Unit price in minor units (e.g. cents) of `currency`. */

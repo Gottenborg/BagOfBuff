@@ -27,7 +27,17 @@ function toEuros(cents: number | null): string {
   return cents === null ? "" : (cents / 100).toFixed(2);
 }
 function toCents(euros: string): number {
-  return Math.round(Number(euros) * 100);
+  return Math.round(Number(euros.replace(",", ".")) * 100);
+}
+
+/** Percentage off, given a reference price and the current price. */
+function discountPercent(
+  compareAtCents: number | null,
+  priceCents: number,
+): number | null {
+  if (compareAtCents === null || compareAtCents <= 0) return null;
+  if (priceCents >= compareAtCents) return null;
+  return Math.round(((compareAtCents - priceCents) / compareAtCents) * 100);
 }
 
 function AdminRoot() {
@@ -60,8 +70,6 @@ function Catalogue() {
     },
   });
 
-  // Archiving and restoring are both a PATCH of `active`; DELETE is the
-  // archive shortcut the API already exposes.
   const setActive = useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
       const { error, response } = await api.PATCH("/products/{id}", {
@@ -98,6 +106,7 @@ function Catalogue() {
             <thead>
               <tr className="border-b border-border bg-subtle/60 text-left text-muted">
                 <th className="px-4 py-2.5 font-semibold">Product</th>
+                <th className="px-4 py-2.5 font-semibold">SKU</th>
                 <th className="px-4 py-2.5 font-semibold">Price</th>
                 <th className="px-4 py-2.5 font-semibold">Stock</th>
                 <th className="px-4 py-2.5 font-semibold">Status</th>
@@ -107,7 +116,7 @@ function Catalogue() {
             <tbody>
               {products.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted">
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted">
                     No products yet — add your first one above.
                   </td>
                 </tr>
@@ -157,9 +166,7 @@ function ProductRow({
   onToggleActive: () => void;
   toggleDisabled: boolean;
 }) {
-  const onSale =
-    product.compareAtCents !== null &&
-    product.compareAtCents > product.priceCents;
+  const pct = discountPercent(product.compareAtCents, product.priceCents);
 
   return (
     <>
@@ -168,15 +175,23 @@ function ProductRow({
           <div className="font-medium text-foreground">{product.name}</div>
           <div className="text-xs text-muted">{product.slug}</div>
         </td>
+        <td className="px-4 py-2.5 font-mono text-xs text-muted">
+          {product.sku}
+        </td>
         <td className="px-4 py-2.5 tabular-nums">
-          {onSale && (
+          {pct !== null && (
             <span className="mr-1.5 text-muted line-through">
               {formatPrice(product.compareAtCents!, product.currency)}
             </span>
           )}
-          <span className={onSale ? "font-medium text-danger" : undefined}>
+          <span className={pct !== null ? "font-medium text-danger" : undefined}>
             {formatPrice(product.priceCents, product.currency)}
           </span>
+          {pct !== null && (
+            <Badge variant="danger" className="ml-2">
+              −{pct}%
+            </Badge>
+          )}
         </td>
         <td className="px-4 py-2.5 tabular-nums">
           <span className={product.stock === 0 ? "text-danger" : undefined}>
@@ -210,7 +225,7 @@ function ProductRow({
       </tr>
       {isEditing && (
         <tr className="border-b border-border bg-subtle/40">
-          <td colSpan={5} className="px-4 py-4">
+          <td colSpan={6} className="px-4 py-4">
             <EditProductForm
               product={product}
               onCancel={onCancel}
@@ -235,10 +250,45 @@ function EditProductForm({
 }) {
   const [name, setName] = useState(product.name);
   const [slug, setSlug] = useState(product.slug);
+  const [sku, setSku] = useState(product.sku);
   const [description, setDescription] = useState(product.description ?? "");
   const [price, setPrice] = useState(toEuros(product.priceCents));
   const [compareAt, setCompareAt] = useState(toEuros(product.compareAtCents));
   const [stock, setStock] = useState(String(product.stock));
+  const [percent, setPercent] = useState(() => {
+    const p = discountPercent(product.compareAtCents, product.priceCents);
+    return p === null ? "" : String(p);
+  });
+
+  /** Price and percent are two views of the same discount — keep them in sync. */
+  function changePrice(next: string) {
+    setPrice(next);
+    const p = discountPercent(
+      compareAt.trim() ? toCents(compareAt) : null,
+      toCents(next),
+    );
+    setPercent(p === null ? "" : String(p));
+  }
+
+  function changeCompareAt(next: string) {
+    setCompareAt(next);
+    const p = discountPercent(
+      next.trim() ? toCents(next) : null,
+      toCents(price),
+    );
+    setPercent(p === null ? "" : String(p));
+  }
+
+  function changePercent(next: string) {
+    setPercent(next);
+    const pct = Number(next);
+    if (!next.trim() || !Number.isFinite(pct) || pct < 0 || pct >= 100) return;
+    // With no reference price yet, "20% off" means off the current price — so
+    // the current price becomes the reference and the new price is derived.
+    const base = compareAt.trim() ? toCents(compareAt) : toCents(price);
+    if (!compareAt.trim()) setCompareAt(toEuros(base));
+    setPrice(toEuros(Math.round(base * (1 - pct / 100))));
+  }
 
   const save = useMutation({
     mutationFn: async () => {
@@ -247,6 +297,7 @@ function EditProductForm({
         body: {
           name,
           slug,
+          sku,
           description: description.trim() ? description : null,
           priceCents: toCents(price),
           // Empty clears the discount; the storefront only shows a sale when
@@ -263,6 +314,8 @@ function EditProductForm({
     onSuccess: onSaved,
   });
 
+  const id = product.id;
+
   return (
     <form
       onSubmit={(e) => {
@@ -270,56 +323,77 @@ function EditProductForm({
         save.mutate();
       }}
     >
-      <div className="flex flex-wrap items-end gap-3">
-        <Field label="Name" htmlFor={`e-name-${product.id}`} className="w-48">
+      {/* items-start keeps every input on the same baseline; fields carrying a
+          hint would otherwise be pushed up by items-end. */}
+      <div className="flex flex-wrap items-start gap-3">
+        <Field label="Name" htmlFor={`e-name-${id}`} className="w-48">
           <Input
-            id={`e-name-${product.id}`}
+            id={`e-name-${id}`}
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
         </Field>
-        <Field label="Slug" htmlFor={`e-slug-${product.id}`} className="w-40">
+        <Field label="Slug" htmlFor={`e-slug-${id}`} className="w-40">
           <Input
-            id={`e-slug-${product.id}`}
+            id={`e-slug-${id}`}
             required
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
           />
         </Field>
-        <Field
-          label="Price (€)"
-          htmlFor={`e-price-${product.id}`}
-          className="w-28"
-        >
+        <Field label="SKU" htmlFor={`e-sku-${id}`} className="w-36">
           <Input
-            id={`e-price-${product.id}`}
+            id={`e-sku-${id}`}
+            required
+            value={sku}
+            onChange={(e) => setSku(e.target.value)}
+          />
+        </Field>
+        <Field label="Price (€)" htmlFor={`e-price-${id}`} className="w-28">
+          <Input
+            id={`e-price-${id}`}
             required
             type="number"
             step="0.01"
             min="0"
             value={price}
-            onChange={(e) => setPrice(e.target.value)}
+            onChange={(e) => changePrice(e.target.value)}
           />
         </Field>
         <Field
           label="Compare at (€)"
-          htmlFor={`e-compare-${product.id}`}
+          htmlFor={`e-compare-${id}`}
           className="w-32"
           hint="Blank = not on sale"
         >
           <Input
-            id={`e-compare-${product.id}`}
+            id={`e-compare-${id}`}
             type="number"
             step="0.01"
             min="0"
             value={compareAt}
-            onChange={(e) => setCompareAt(e.target.value)}
+            onChange={(e) => changeCompareAt(e.target.value)}
           />
         </Field>
-        <Field label="Stock" htmlFor={`e-stock-${product.id}`} className="w-24">
+        <Field
+          label="Discount %"
+          htmlFor={`e-pct-${id}`}
+          className="w-28"
+          hint="Sets the price"
+        >
           <Input
-            id={`e-stock-${product.id}`}
+            id={`e-pct-${id}`}
+            type="number"
+            min="0"
+            max="99"
+            value={percent}
+            onChange={(e) => changePercent(e.target.value)}
+          />
+        </Field>
+        <Field label="Stock" htmlFor={`e-stock-${id}`} className="w-24">
+          <Input
+            id={`e-stock-${id}`}
             required
             type="number"
             min="0"
@@ -331,11 +405,11 @@ function EditProductForm({
 
       <Field
         label="Description"
-        htmlFor={`e-desc-${product.id}`}
+        htmlFor={`e-desc-${id}`}
         className="mt-3 max-w-2xl"
       >
         <Input
-          id={`e-desc-${product.id}`}
+          id={`e-desc-${id}`}
           value={description}
           placeholder="Shown on the product page"
           onChange={(e) => setDescription(e.target.value)}
@@ -359,6 +433,7 @@ function EditProductForm({
 
 function NewProductForm({ onCreated }: { onCreated: () => void }) {
   const [slug, setSlug] = useState("");
+  const [sku, setSku] = useState("");
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
@@ -368,6 +443,7 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
       const { error, response } = await api.POST("/products/", {
         body: {
           slug,
+          sku,
           name,
           priceCents: toCents(price),
           stock: stock ? Number(stock) : 0,
@@ -380,6 +456,7 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
     },
     onSuccess: () => {
       setSlug("");
+      setSku("");
       setName("");
       setPrice("");
       setStock("");
@@ -395,7 +472,7 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
             e.preventDefault();
             create.mutate();
           }}
-          className="flex flex-wrap items-end gap-3"
+          className="flex flex-wrap items-start gap-3"
         >
           <Field label="Name" htmlFor="np-name" className="w-48">
             <Input
@@ -411,6 +488,15 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
               required
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
+            />
+          </Field>
+          <Field label="SKU" htmlFor="np-sku" className="w-36">
+            <Input
+              id="np-sku"
+              required
+              value={sku}
+              placeholder="BOB-300G"
+              onChange={(e) => setSku(e.target.value)}
             />
           </Field>
           <Field label="Price (€)" htmlFor="np-price" className="w-28">
@@ -433,9 +519,12 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
               onChange={(e) => setStock(e.target.value)}
             />
           </Field>
-          <Button type="submit" disabled={create.isPending}>
-            {create.isPending ? "Adding…" : "Add product"}
-          </Button>
+          {/* Aligns the button with the inputs, which sit under their labels. */}
+          <div className="pt-[1.375rem]">
+            <Button type="submit" disabled={create.isPending}>
+              {create.isPending ? "Adding…" : "Add product"}
+            </Button>
+          </div>
           {create.isError && (
             <p className="w-full text-sm text-danger">{create.error.message}</p>
           )}

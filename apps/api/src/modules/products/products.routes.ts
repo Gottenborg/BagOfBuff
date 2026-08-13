@@ -64,6 +64,7 @@ const Int = t.Number();
 const ProductModel = t.Object({
   id: t.String(),
   slug: t.String(),
+  sku: t.String(),
   name: t.String(),
   description: t.Nullable(t.String()),
   priceCents: Int,
@@ -83,6 +84,7 @@ const NotFound = t.Object({ message: t.String() });
 /** Fields accepted when creating a product. */
 const CreateProductBody = t.Object({
   slug: t.String({ minLength: 1 }),
+  sku: t.String({ minLength: 1 }),
   name: t.String({ minLength: 1 }),
   description: t.Optional(t.Nullable(t.String())),
   priceCents: t.Integer({ minimum: 0 }),
@@ -96,6 +98,7 @@ const CreateProductBody = t.Object({
 const UpdateProductBody = t.Partial(
   t.Object({
     slug: t.String({ minLength: 1 }),
+    sku: t.String({ minLength: 1 }),
     name: t.String({ minLength: 1 }),
     description: t.Nullable(t.String()),
     priceCents: t.Integer({ minimum: 0 }),
@@ -123,6 +126,20 @@ function isUniqueViolation(err: unknown): boolean {
     "code" in err &&
     (err as { code?: string }).code === "23505"
   );
+}
+
+/**
+ * Which field collided. Products are unique on both slug and SKU, so a generic
+ * "already exists" leaves the operator guessing which one to change.
+ */
+function conflictMessage(err: unknown): string {
+  const constraint =
+    typeof err === "object" && err !== null && "constraint_name" in err
+      ? String((err as { constraint_name?: unknown }).constraint_name ?? "")
+      : "";
+  if (constraint.includes("sku")) return "That SKU is already used by another product";
+  if (constraint.includes("slug")) return "That slug is already used by another product";
+  return "A product with those details already exists";
 }
 
 export const productsRoutes = new Elysia({
@@ -182,9 +199,7 @@ export const productsRoutes = new Elysia({
         return status(201, serialize(created!));
       } catch (err) {
         if (isUniqueViolation(err)) {
-          return status(409, {
-            message: "A product with that slug already exists",
-          });
+          return status(409, { message: conflictMessage(err) });
         }
         throw err;
       }
@@ -227,9 +242,7 @@ export const productsRoutes = new Elysia({
         return serialize(updated);
       } catch (err) {
         if (isUniqueViolation(err)) {
-          return status(409, {
-            message: "A product with that slug already exists",
-          });
+          return status(409, { message: conflictMessage(err) });
         }
         throw err;
       }
