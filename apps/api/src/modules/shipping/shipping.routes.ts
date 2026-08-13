@@ -7,6 +7,7 @@ import {
   type ShippingRate,
   type ShippingZone,
 } from "../../db/schema";
+import { currencyForCountry } from "../../lib/currency";
 import { authPlugin, isAdmin } from "../auth/auth.plugin";
 import {
   computeOptions,
@@ -64,6 +65,8 @@ const OptionModel = t.Object({
 
 const QuoteResponse = t.Object({
   zone: t.Object({ id: t.String(), name: t.String() }),
+  /** Currency the destination is billed in; options are denominated in it. */
+  currency: t.String(),
   options: t.Array(OptionModel),
 });
 
@@ -168,9 +171,13 @@ export const shippingRoutes = new Elysia({
         return status(404, {
           message: `We don't ship to ${normalizeCountry(body.country)} yet`,
         });
-      const rates = await ratesForZone(zone.id);
+      // Shipping must be billed in the same currency as the goods, which the
+      // destination decides.
+      const currency = currencyForCountry(body.country);
+      const rates = await ratesForZone(zone.id, currency);
       return {
         zone: { id: zone.id, name: zone.name },
+        currency,
         options: computeOptions(rates, body.subtotalCents),
       };
     },

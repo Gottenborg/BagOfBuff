@@ -76,12 +76,25 @@ export function computeOptions(
     .sort((a, b) => a.priceCents - b.priceCents || a.baseCents - b.baseCents);
 }
 
-/** Active rates for a zone. */
-export function ratesForZone(zoneId: string): Promise<ShippingRate[]> {
+/**
+ * Active rates for a zone, in one currency.
+ *
+ * A Stripe Checkout session has a single currency, so the shipping offered must
+ * be denominated the same way as the goods. Rates in other currencies are not
+ * converted — they are simply not offered for that destination.
+ */
+export function ratesForZone(
+  zoneId: string,
+  currency?: string,
+): Promise<ShippingRate[]> {
   return db
     .select()
     .from(shippingRates)
     .where(
-      and(eq(shippingRates.zoneId, zoneId), eq(shippingRates.active, true)),
+      and(
+        eq(shippingRates.zoneId, zoneId),
+        eq(shippingRates.active, true),
+        ...(currency ? [eq(shippingRates.currency, currency)] : []),
+      ),
     );
 }

@@ -138,6 +138,7 @@
           "Products"
         ],
         "summary": "List products (active only; drafts included for admins)",
+        "description": "Prices are returned in `currency` (default DKK, the base currency).",
         "parameters": [
           {
             "name": "includeInactive",
@@ -145,6 +146,16 @@
             "required": false,
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "minLength": 3,
+              "maxLength": 3,
+              "type": "string"
             }
           }
         ],
@@ -167,6 +178,8 @@
                       "compareAtCents",
                       "lowestPriceCents30d",
                       "currency",
+                      "prices",
+                      "missingCurrencies",
                       "stock",
                       "active",
                       "createdAt",
@@ -224,6 +237,42 @@
                       "currency": {
                         "type": "string"
                       },
+                      "prices": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "currency",
+                            "priceCents",
+                            "compareAtCents"
+                          ],
+                          "properties": {
+                            "currency": {
+                              "type": "string"
+                            },
+                            "priceCents": {
+                              "type": "number"
+                            },
+                            "compareAtCents": {
+                              "nullable": true,
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      "missingCurrencies": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
                       "stock": {
                         "type": "number"
                       },
@@ -262,7 +311,7 @@
                   "slug",
                   "sku",
                   "name",
-                  "priceCents"
+                  "prices"
                 ],
                 "properties": {
                   "slug": {
@@ -288,46 +337,61 @@
                       }
                     ]
                   },
-                  "priceCents": {
-                    "minimum": 0,
-                    "anyOf": [
-                      {
-                        "format": "integer",
-                        "default": 0,
-                        "type": "string"
-                      },
-                      {
-                        "minimum": 0,
-                        "type": "integer"
+                  "prices": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "currency",
+                        "priceCents"
+                      ],
+                      "properties": {
+                        "currency": {
+                          "type": "string",
+                          "enum": [
+                            "DKK",
+                            "EUR"
+                          ]
+                        },
+                        "priceCents": {
+                          "minimum": 0,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "compareAtCents": {
+                          "nullable": true,
+                          "anyOf": [
+                            {
+                              "minimum": 0,
+                              "anyOf": [
+                                {
+                                  "format": "integer",
+                                  "default": 0,
+                                  "type": "string"
+                                },
+                                {
+                                  "minimum": 0,
+                                  "type": "integer"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
                       }
-                    ]
-                  },
-                  "compareAtCents": {
-                    "nullable": true,
-                    "anyOf": [
-                      {
-                        "minimum": 0,
-                        "anyOf": [
-                          {
-                            "format": "integer",
-                            "default": 0,
-                            "type": "string"
-                          },
-                          {
-                            "minimum": 0,
-                            "type": "integer"
-                          }
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "currency": {
-                    "minLength": 3,
-                    "maxLength": 3,
-                    "type": "string"
+                    }
                   },
                   "stock": {
                     "minimum": 0,
@@ -356,7 +420,7 @@
                   "slug",
                   "sku",
                   "name",
-                  "priceCents"
+                  "prices"
                 ],
                 "properties": {
                   "slug": {
@@ -382,46 +446,61 @@
                       }
                     ]
                   },
-                  "priceCents": {
-                    "minimum": 0,
-                    "anyOf": [
-                      {
-                        "format": "integer",
-                        "default": 0,
-                        "type": "string"
-                      },
-                      {
-                        "minimum": 0,
-                        "type": "integer"
+                  "prices": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "currency",
+                        "priceCents"
+                      ],
+                      "properties": {
+                        "currency": {
+                          "type": "string",
+                          "enum": [
+                            "DKK",
+                            "EUR"
+                          ]
+                        },
+                        "priceCents": {
+                          "minimum": 0,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "compareAtCents": {
+                          "nullable": true,
+                          "anyOf": [
+                            {
+                              "minimum": 0,
+                              "anyOf": [
+                                {
+                                  "format": "integer",
+                                  "default": 0,
+                                  "type": "string"
+                                },
+                                {
+                                  "minimum": 0,
+                                  "type": "integer"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
                       }
-                    ]
-                  },
-                  "compareAtCents": {
-                    "nullable": true,
-                    "anyOf": [
-                      {
-                        "minimum": 0,
-                        "anyOf": [
-                          {
-                            "format": "integer",
-                            "default": 0,
-                            "type": "string"
-                          },
-                          {
-                            "minimum": 0,
-                            "type": "integer"
-                          }
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "currency": {
-                    "minLength": 3,
-                    "maxLength": 3,
-                    "type": "string"
+                    }
                   },
                   "stock": {
                     "minimum": 0,
@@ -450,7 +529,7 @@
                   "slug",
                   "sku",
                   "name",
-                  "priceCents"
+                  "prices"
                 ],
                 "properties": {
                   "slug": {
@@ -476,46 +555,61 @@
                       }
                     ]
                   },
-                  "priceCents": {
-                    "minimum": 0,
-                    "anyOf": [
-                      {
-                        "format": "integer",
-                        "default": 0,
-                        "type": "string"
-                      },
-                      {
-                        "minimum": 0,
-                        "type": "integer"
+                  "prices": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "currency",
+                        "priceCents"
+                      ],
+                      "properties": {
+                        "currency": {
+                          "type": "string",
+                          "enum": [
+                            "DKK",
+                            "EUR"
+                          ]
+                        },
+                        "priceCents": {
+                          "minimum": 0,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "compareAtCents": {
+                          "nullable": true,
+                          "anyOf": [
+                            {
+                              "minimum": 0,
+                              "anyOf": [
+                                {
+                                  "format": "integer",
+                                  "default": 0,
+                                  "type": "string"
+                                },
+                                {
+                                  "minimum": 0,
+                                  "type": "integer"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
                       }
-                    ]
-                  },
-                  "compareAtCents": {
-                    "nullable": true,
-                    "anyOf": [
-                      {
-                        "minimum": 0,
-                        "anyOf": [
-                          {
-                            "format": "integer",
-                            "default": 0,
-                            "type": "string"
-                          },
-                          {
-                            "minimum": 0,
-                            "type": "integer"
-                          }
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "currency": {
-                    "minLength": 3,
-                    "maxLength": 3,
-                    "type": "string"
+                    }
                   },
                   "stock": {
                     "minimum": 0,
@@ -556,6 +650,8 @@
                     "compareAtCents",
                     "lowestPriceCents30d",
                     "currency",
+                    "prices",
+                    "missingCurrencies",
                     "stock",
                     "active",
                     "createdAt",
@@ -612,6 +708,42 @@
                     },
                     "currency": {
                       "type": "string"
+                    },
+                    "prices": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "currency",
+                          "priceCents",
+                          "compareAtCents"
+                        ],
+                        "properties": {
+                          "currency": {
+                            "type": "string"
+                          },
+                          "priceCents": {
+                            "type": "number"
+                          },
+                          "compareAtCents": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "missingCurrencies": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "stock": {
                       "type": "number"
@@ -704,6 +836,16 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "minLength": 3,
+              "maxLength": 3,
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -723,6 +865,8 @@
                     "compareAtCents",
                     "lowestPriceCents30d",
                     "currency",
+                    "prices",
+                    "missingCurrencies",
                     "stock",
                     "active",
                     "createdAt",
@@ -779,6 +923,42 @@
                     },
                     "currency": {
                       "type": "string"
+                    },
+                    "prices": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "currency",
+                          "priceCents",
+                          "compareAtCents"
+                        ],
+                        "properties": {
+                          "currency": {
+                            "type": "string"
+                          },
+                          "priceCents": {
+                            "type": "number"
+                          },
+                          "compareAtCents": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "missingCurrencies": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "stock": {
                       "type": "number"
@@ -867,46 +1047,60 @@
                       }
                     ]
                   },
-                  "priceCents": {
-                    "minimum": 0,
-                    "anyOf": [
-                      {
-                        "format": "integer",
-                        "default": 0,
-                        "type": "string"
-                      },
-                      {
-                        "minimum": 0,
-                        "type": "integer"
+                  "prices": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "currency",
+                        "priceCents"
+                      ],
+                      "properties": {
+                        "currency": {
+                          "type": "string",
+                          "enum": [
+                            "DKK",
+                            "EUR"
+                          ]
+                        },
+                        "priceCents": {
+                          "minimum": 0,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "compareAtCents": {
+                          "nullable": true,
+                          "anyOf": [
+                            {
+                              "minimum": 0,
+                              "anyOf": [
+                                {
+                                  "format": "integer",
+                                  "default": 0,
+                                  "type": "string"
+                                },
+                                {
+                                  "minimum": 0,
+                                  "type": "integer"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
                       }
-                    ]
-                  },
-                  "compareAtCents": {
-                    "nullable": true,
-                    "anyOf": [
-                      {
-                        "minimum": 0,
-                        "anyOf": [
-                          {
-                            "format": "integer",
-                            "default": 0,
-                            "type": "string"
-                          },
-                          {
-                            "minimum": 0,
-                            "type": "integer"
-                          }
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "currency": {
-                    "minLength": 3,
-                    "maxLength": 3,
-                    "type": "string"
+                    }
                   },
                   "stock": {
                     "minimum": 0,
@@ -955,46 +1149,60 @@
                       }
                     ]
                   },
-                  "priceCents": {
-                    "minimum": 0,
-                    "anyOf": [
-                      {
-                        "format": "integer",
-                        "default": 0,
-                        "type": "string"
-                      },
-                      {
-                        "minimum": 0,
-                        "type": "integer"
+                  "prices": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "currency",
+                        "priceCents"
+                      ],
+                      "properties": {
+                        "currency": {
+                          "type": "string",
+                          "enum": [
+                            "DKK",
+                            "EUR"
+                          ]
+                        },
+                        "priceCents": {
+                          "minimum": 0,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "compareAtCents": {
+                          "nullable": true,
+                          "anyOf": [
+                            {
+                              "minimum": 0,
+                              "anyOf": [
+                                {
+                                  "format": "integer",
+                                  "default": 0,
+                                  "type": "string"
+                                },
+                                {
+                                  "minimum": 0,
+                                  "type": "integer"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
                       }
-                    ]
-                  },
-                  "compareAtCents": {
-                    "nullable": true,
-                    "anyOf": [
-                      {
-                        "minimum": 0,
-                        "anyOf": [
-                          {
-                            "format": "integer",
-                            "default": 0,
-                            "type": "string"
-                          },
-                          {
-                            "minimum": 0,
-                            "type": "integer"
-                          }
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "currency": {
-                    "minLength": 3,
-                    "maxLength": 3,
-                    "type": "string"
+                    }
                   },
                   "stock": {
                     "minimum": 0,
@@ -1043,46 +1251,60 @@
                       }
                     ]
                   },
-                  "priceCents": {
-                    "minimum": 0,
-                    "anyOf": [
-                      {
-                        "format": "integer",
-                        "default": 0,
-                        "type": "string"
-                      },
-                      {
-                        "minimum": 0,
-                        "type": "integer"
+                  "prices": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "currency",
+                        "priceCents"
+                      ],
+                      "properties": {
+                        "currency": {
+                          "type": "string",
+                          "enum": [
+                            "DKK",
+                            "EUR"
+                          ]
+                        },
+                        "priceCents": {
+                          "minimum": 0,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "compareAtCents": {
+                          "nullable": true,
+                          "anyOf": [
+                            {
+                              "minimum": 0,
+                              "anyOf": [
+                                {
+                                  "format": "integer",
+                                  "default": 0,
+                                  "type": "string"
+                                },
+                                {
+                                  "minimum": 0,
+                                  "type": "integer"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
                       }
-                    ]
-                  },
-                  "compareAtCents": {
-                    "nullable": true,
-                    "anyOf": [
-                      {
-                        "minimum": 0,
-                        "anyOf": [
-                          {
-                            "format": "integer",
-                            "default": 0,
-                            "type": "string"
-                          },
-                          {
-                            "minimum": 0,
-                            "type": "integer"
-                          }
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "currency": {
-                    "minLength": 3,
-                    "maxLength": 3,
-                    "type": "string"
+                    }
                   },
                   "stock": {
                     "minimum": 0,
@@ -1123,6 +1345,8 @@
                     "compareAtCents",
                     "lowestPriceCents30d",
                     "currency",
+                    "prices",
+                    "missingCurrencies",
                     "stock",
                     "active",
                     "createdAt",
@@ -1179,6 +1403,42 @@
                     },
                     "currency": {
                       "type": "string"
+                    },
+                    "prices": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "currency",
+                          "priceCents",
+                          "compareAtCents"
+                        ],
+                        "properties": {
+                          "currency": {
+                            "type": "string"
+                          },
+                          "priceCents": {
+                            "type": "number"
+                          },
+                          "compareAtCents": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "missingCurrencies": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "stock": {
                       "type": "number"
@@ -1306,6 +1566,8 @@
                     "compareAtCents",
                     "lowestPriceCents30d",
                     "currency",
+                    "prices",
+                    "missingCurrencies",
                     "stock",
                     "active",
                     "createdAt",
@@ -1362,6 +1624,42 @@
                     },
                     "currency": {
                       "type": "string"
+                    },
+                    "prices": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "currency",
+                          "priceCents",
+                          "compareAtCents"
+                        ],
+                        "properties": {
+                          "currency": {
+                            "type": "string"
+                          },
+                          "priceCents": {
+                            "type": "number"
+                          },
+                          "compareAtCents": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "missingCurrencies": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "stock": {
                       "type": "number"
@@ -1550,6 +1848,7 @@
                   "type": "object",
                   "required": [
                     "zone",
+                    "currency",
                     "options"
                   ],
                   "properties": {
@@ -1567,6 +1866,9 @@
                           "type": "string"
                         }
                       }
+                    },
+                    "currency": {
+                      "type": "string"
                     },
                     "options": {
                       "type": "array",

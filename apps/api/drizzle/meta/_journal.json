@@ -64,6 +64,13 @@
       "when": 1786604227562,
       "tag": "0008_chunky_mystique",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786604784529,
+      "tag": "0009_thick_starhawk",
+      "breakpoints": true
     }
   ]
 }
