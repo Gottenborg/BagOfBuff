@@ -548,6 +548,7 @@ export interface operations {
                     "application/json": {
                         id: string;
                         slug: string;
+                        sku: string;
                         name: string;
                         description: (string | null) | null;
                         priceCents: number;
@@ -576,6 +577,7 @@ export interface operations {
             content: {
                 "application/json": {
                     slug: string;
+                    sku: string;
                     name: string;
                     description?: (string | null) | null;
                     priceCents: string | number;
@@ -586,6 +588,7 @@ export interface operations {
                 };
                 "application/x-www-form-urlencoded": {
                     slug: string;
+                    sku: string;
                     name: string;
                     description?: (string | null) | null;
                     priceCents: string | number;
@@ -596,6 +599,7 @@ export interface operations {
                 };
                 "multipart/form-data": {
                     slug: string;
+                    sku: string;
                     name: string;
                     description?: (string | null) | null;
                     priceCents: string | number;
@@ -616,6 +620,7 @@ export interface operations {
                     "application/json": {
                         id: string;
                         slug: string;
+                        sku: string;
                         name: string;
                         description: (string | null) | null;
                         priceCents: number;
@@ -686,6 +691,7 @@ export interface operations {
                     "application/json": {
                         id: string;
                         slug: string;
+                        sku: string;
                         name: string;
                         description: (string | null) | null;
                         priceCents: number;
@@ -734,6 +740,7 @@ export interface operations {
                     "application/json": {
                         id: string;
                         slug: string;
+                        sku: string;
                         name: string;
                         description: (string | null) | null;
                         priceCents: number;
@@ -797,6 +804,7 @@ export interface operations {
             content: {
                 "application/json": {
                     slug?: string;
+                    sku?: string;
                     name?: string;
                     description?: (string | null) | null;
                     priceCents?: string | number;
@@ -807,6 +815,7 @@ export interface operations {
                 };
                 "application/x-www-form-urlencoded": {
                     slug?: string;
+                    sku?: string;
                     name?: string;
                     description?: (string | null) | null;
                     priceCents?: string | number;
@@ -817,6 +826,7 @@ export interface operations {
                 };
                 "multipart/form-data": {
                     slug?: string;
+                    sku?: string;
                     name?: string;
                     description?: (string | null) | null;
                     priceCents?: string | number;
@@ -837,6 +847,7 @@ export interface operations {
                     "application/json": {
                         id: string;
                         slug: string;
+                        sku: string;
                         name: string;
                         description: (string | null) | null;
                         priceCents: number;

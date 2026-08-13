@@ -160,6 +160,7 @@
                     "required": [
                       "id",
                       "slug",
+                      "sku",
                       "name",
                       "description",
                       "priceCents",
@@ -176,6 +177,9 @@
                         "type": "string"
                       },
                       "slug": {
+                        "type": "string"
+                      },
+                      "sku": {
                         "type": "string"
                       },
                       "name": {
@@ -256,11 +260,16 @@
                 "type": "object",
                 "required": [
                   "slug",
+                  "sku",
                   "name",
                   "priceCents"
                 ],
                 "properties": {
                   "slug": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "sku": {
                     "minLength": 1,
                     "type": "string"
                   },
@@ -345,11 +354,16 @@
                 "type": "object",
                 "required": [
                   "slug",
+                  "sku",
                   "name",
                   "priceCents"
                 ],
                 "properties": {
                   "slug": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "sku": {
                     "minLength": 1,
                     "type": "string"
                   },
@@ -434,11 +448,16 @@
                 "type": "object",
                 "required": [
                   "slug",
+                  "sku",
                   "name",
                   "priceCents"
                 ],
                 "properties": {
                   "slug": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "sku": {
                     "minLength": 1,
                     "type": "string"
                   },
@@ -530,6 +549,7 @@
                   "required": [
                     "id",
                     "slug",
+                    "sku",
                     "name",
                     "description",
                     "priceCents",
@@ -546,6 +566,9 @@
                       "type": "string"
                     },
                     "slug": {
+                      "type": "string"
+                    },
+                    "sku": {
                       "type": "string"
                     },
                     "name": {
@@ -693,6 +716,7 @@
                   "required": [
                     "id",
                     "slug",
+                    "sku",
                     "name",
                     "description",
                     "priceCents",
@@ -709,6 +733,9 @@
                       "type": "string"
                     },
                     "slug": {
+                      "type": "string"
+                    },
+                    "sku": {
                       "type": "string"
                     },
                     "name": {
@@ -821,6 +848,10 @@
                     "minLength": 1,
                     "type": "string"
                   },
+                  "sku": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
                   "name": {
                     "minLength": 1,
                     "type": "string"
@@ -905,6 +936,10 @@
                     "minLength": 1,
                     "type": "string"
                   },
+                  "sku": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
                   "name": {
                     "minLength": 1,
                     "type": "string"
@@ -986,6 +1021,10 @@
                 "type": "object",
                 "properties": {
                   "slug": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "sku": {
                     "minLength": 1,
                     "type": "string"
                   },
@@ -1077,6 +1116,7 @@
                   "required": [
                     "id",
                     "slug",
+                    "sku",
                     "name",
                     "description",
                     "priceCents",
@@ -1093,6 +1133,9 @@
                       "type": "string"
                     },
                     "slug": {
+                      "type": "string"
+                    },
+                    "sku": {
                       "type": "string"
                     },
                     "name": {
@@ -1256,6 +1299,7 @@
                   "required": [
                     "id",
                     "slug",
+                    "sku",
                     "name",
                     "description",
                     "priceCents",
@@ -1272,6 +1316,9 @@
                       "type": "string"
                     },
                     "slug": {
+                      "type": "string"
+                    },
+                    "sku": {
                       "type": "string"
                     },
                     "name": {
