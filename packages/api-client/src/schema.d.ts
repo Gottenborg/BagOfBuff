@@ -94,6 +94,44 @@ export interface paths {
         patch: operations["patchProductsById"];
         trace?: never;
     };
+    "/products/{id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Attach an uploaded image to a product (admin) */
+        post: operations["postProductsByIdImages"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/images/{imageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove an image from a product (admin)
+         * @description Removes the gallery entry. The file itself is deleted from storage by the back office.
+         */
+        delete: operations["deleteProductsImagesByImageId"];
+        options?: never;
+        head?: never;
+        /** Update an image's alt text or order (admin) */
+        patch: operations["patchProductsImagesByImageId"];
+        trace?: never;
+    };
     "/shipping/quote": {
         parameters: {
             query?: never;
@@ -555,6 +593,14 @@ export interface operations {
                         sku: string;
                         name: string;
                         description: (string | null) | null;
+                        seoTitle: (string | null) | null;
+                        seoDescription: (string | null) | null;
+                        images: {
+                            id: string;
+                            url: string;
+                            alt: string;
+                            position: number;
+                        }[];
                         priceCents: number;
                         compareAtCents: (number | null) | null;
                         lowestPriceCents30d: (number | null) | null;
@@ -590,6 +636,8 @@ export interface operations {
                     sku: string;
                     name: string;
                     description?: (string | null) | null;
+                    seoTitle?: (string | null) | null;
+                    seoDescription?: (string | null) | null;
                     prices: {
                         /** @enum {string} */
                         currency: "DKK" | "EUR";
@@ -604,6 +652,8 @@ export interface operations {
                     sku: string;
                     name: string;
                     description?: (string | null) | null;
+                    seoTitle?: (string | null) | null;
+                    seoDescription?: (string | null) | null;
                     prices: {
                         /** @enum {string} */
                         currency: "DKK" | "EUR";
@@ -618,6 +668,8 @@ export interface operations {
                     sku: string;
                     name: string;
                     description?: (string | null) | null;
+                    seoTitle?: (string | null) | null;
+                    seoDescription?: (string | null) | null;
                     prices: {
                         /** @enum {string} */
                         currency: "DKK" | "EUR";
@@ -642,6 +694,14 @@ export interface operations {
                         sku: string;
                         name: string;
                         description: (string | null) | null;
+                        seoTitle: (string | null) | null;
+                        seoDescription: (string | null) | null;
+                        images: {
+                            id: string;
+                            url: string;
+                            alt: string;
+                            position: number;
+                        }[];
                         priceCents: number;
                         compareAtCents: (number | null) | null;
                         lowestPriceCents30d: (number | null) | null;
@@ -721,6 +781,14 @@ export interface operations {
                         sku: string;
                         name: string;
                         description: (string | null) | null;
+                        seoTitle: (string | null) | null;
+                        seoDescription: (string | null) | null;
+                        images: {
+                            id: string;
+                            url: string;
+                            alt: string;
+                            position: number;
+                        }[];
                         priceCents: number;
                         compareAtCents: (number | null) | null;
                         lowestPriceCents30d: (number | null) | null;
@@ -776,6 +844,14 @@ export interface operations {
                         sku: string;
                         name: string;
                         description: (string | null) | null;
+                        seoTitle: (string | null) | null;
+                        seoDescription: (string | null) | null;
+                        images: {
+                            id: string;
+                            url: string;
+                            alt: string;
+                            position: number;
+                        }[];
                         priceCents: number;
                         compareAtCents: (number | null) | null;
                         lowestPriceCents30d: (number | null) | null;
@@ -846,6 +922,8 @@ export interface operations {
                     sku?: string;
                     name?: string;
                     description?: (string | null) | null;
+                    seoTitle?: (string | null) | null;
+                    seoDescription?: (string | null) | null;
                     prices?: {
                         /** @enum {string} */
                         currency: "DKK" | "EUR";
@@ -860,6 +938,8 @@ export interface operations {
                     sku?: string;
                     name?: string;
                     description?: (string | null) | null;
+                    seoTitle?: (string | null) | null;
+                    seoDescription?: (string | null) | null;
                     prices?: {
                         /** @enum {string} */
                         currency: "DKK" | "EUR";
@@ -874,6 +954,8 @@ export interface operations {
                     sku?: string;
                     name?: string;
                     description?: (string | null) | null;
+                    seoTitle?: (string | null) | null;
+                    seoDescription?: (string | null) | null;
                     prices?: {
                         /** @enum {string} */
                         currency: "DKK" | "EUR";
@@ -898,6 +980,14 @@ export interface operations {
                         sku: string;
                         name: string;
                         description: (string | null) | null;
+                        seoTitle: (string | null) | null;
+                        seoDescription: (string | null) | null;
+                        images: {
+                            id: string;
+                            url: string;
+                            alt: string;
+                            position: number;
+                        }[];
                         priceCents: number;
                         compareAtCents: (number | null) | null;
                         lowestPriceCents30d: (number | null) | null;
@@ -952,6 +1042,216 @@ export interface operations {
             };
             /** @description Response for status 409 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    postProductsByIdImages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    url: string;
+                    alt?: string;
+                    position?: string | number;
+                };
+                "application/x-www-form-urlencoded": {
+                    url: string;
+                    alt?: string;
+                    position?: string | number;
+                };
+                "multipart/form-data": {
+                    url: string;
+                    alt?: string;
+                    position?: string | number;
+                };
+            };
+        };
+        responses: {
+            /** @description Response for status 201 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        url: string;
+                        alt: string;
+                        position: number;
+                    };
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 404 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    deleteProductsImagesByImageId: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 404 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    patchProductsImagesByImageId: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    alt?: string;
+                    position?: string | number;
+                };
+                "application/x-www-form-urlencoded": {
+                    alt?: string;
+                    position?: string | number;
+                };
+                "multipart/form-data": {
+                    alt?: string;
+                    position?: string | number;
+                };
+            };
+        };
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        url: string;
+                        alt: string;
+                        position: number;
+                    };
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 404 */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

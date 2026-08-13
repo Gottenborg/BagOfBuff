@@ -25,7 +25,15 @@ export const products = pgTable("products", {
    */
   sku: text("sku").notNull().unique(),
   name: text("name").notNull(),
+  /** Long-form product copy. Plain text with paragraph breaks. */
   description: text("description"),
+  /**
+   * Search/social overrides. Left null, the storefront falls back to the
+   * product name and description, so these only need filling in when the
+   * marketing copy should differ from the on-page copy.
+   */
+  seoTitle: text("seo_title"),
+  seoDescription: text("seo_description"),
   /** Unit price in minor units (e.g. cents) of `currency`. */
   priceCents: integer("price_cents").notNull(),
   /**
@@ -89,6 +97,32 @@ export const productPrices = pgTable(
 
 export type ProductPrice = typeof productPrices.$inferSelect;
 export type NewProductPrice = typeof productPrices.$inferInsert;
+
+/**
+ * Product photography. Files live in Supabase Storage (bucket
+ * `product-images`); only the public URL and its metadata are stored here.
+ *
+ * `position` orders the gallery — the lowest is the primary image, used for
+ * listings and as the social/OG preview. `alt` is required for accessibility
+ * and is shown if the image fails to load.
+ */
+export const productImages = pgTable("product_images", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  productId: text("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  alt: text("alt").notNull().default(""),
+  position: integer("position").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+}).enableRLS();
+
+export type ProductImage = typeof productImages.$inferSelect;
+export type NewProductImage = typeof productImages.$inferInsert;
 
 /**
  * Append-only price history, written whenever a product's price is set or

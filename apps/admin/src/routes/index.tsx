@@ -11,8 +11,10 @@ import {
   Input,
   Loading,
   Text,
+  Textarea,
 } from "@repo/ui";
 import { AdminShell } from "../components/admin-shell";
+import { ProductImages } from "../components/product-images";
 import { apiErrorMessage } from "../lib/errors";
 import { formatPrice } from "../lib/format";
 import { api } from "../lib/api";
@@ -142,6 +144,7 @@ function Catalogue() {
                     setEditingId(null);
                     invalidate();
                   }}
+                  onRefresh={invalidate}
                   onToggleActive={() =>
                     setActive.mutate({
                       id: product.id,
@@ -165,6 +168,7 @@ function ProductRow({
   onEdit,
   onCancel,
   onSaved,
+  onRefresh,
   onToggleActive,
   toggleDisabled,
 }: {
@@ -173,6 +177,8 @@ function ProductRow({
   onEdit: () => void;
   onCancel: () => void;
   onSaved: () => void;
+  /** Reload data without closing the editor (used after image changes). */
+  onRefresh: () => void;
   onToggleActive: () => void;
   toggleDisabled: boolean;
 }) {
@@ -180,8 +186,26 @@ function ProductRow({
     <>
       <tr className="border-b border-border/70 last:border-0 hover:bg-subtle/40">
         <td className="px-4 py-2.5">
-          <div className="font-medium text-foreground">{product.name}</div>
-          <div className="text-xs text-muted">{product.slug}</div>
+          <div className="flex items-center gap-2.5">
+            {product.images[0] ? (
+              <img
+                src={product.images[0].url}
+                alt={product.images[0].alt}
+                className="h-9 w-9 shrink-0 rounded object-cover"
+              />
+            ) : (
+              <div
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded border border-dashed border-border text-[10px] text-muted"
+                title="No image"
+              >
+                —
+              </div>
+            )}
+            <div>
+              <div className="font-medium text-foreground">{product.name}</div>
+              <div className="text-xs text-muted">{product.slug}</div>
+            </div>
+          </div>
         </td>
         <td className="px-4 py-2.5 font-mono text-xs text-muted">
           {product.sku}
@@ -255,6 +279,7 @@ function ProductRow({
               product={product}
               onCancel={onCancel}
               onSaved={onSaved}
+              onRefresh={onRefresh}
             />
           </td>
         </tr>
@@ -268,15 +293,21 @@ function EditProductForm({
   product,
   onCancel,
   onSaved,
+  onRefresh,
 }: {
   product: Product;
   onCancel: () => void;
   onSaved: () => void;
+  onRefresh: () => void;
 }) {
   const [name, setName] = useState(product.name);
   const [slug, setSlug] = useState(product.slug);
   const [sku, setSku] = useState(product.sku);
   const [description, setDescription] = useState(product.description ?? "");
+  const [seoTitle, setSeoTitle] = useState(product.seoTitle ?? "");
+  const [seoDescription, setSeoDescription] = useState(
+    product.seoDescription ?? "",
+  );
   const [stock, setStock] = useState(String(product.stock));
 
   // One editable price per market. Prices are set per market rather than
@@ -360,6 +391,8 @@ function EditProductForm({
           slug,
           sku,
           description: description.trim() ? description : null,
+          seoTitle: seoTitle.trim() ? seoTitle : null,
+          seoDescription: seoDescription.trim() ? seoDescription : null,
           stock: Number(stock),
           prices: priceInputs,
         },
@@ -487,15 +520,56 @@ function EditProductForm({
       <Field
         label="Description"
         htmlFor={`e-desc-${id}`}
-        className="mt-3 max-w-2xl"
+        className="mt-4 max-w-3xl"
+        hint="Shown on the product page. Blank lines separate paragraphs."
       >
-        <Input
+        <Textarea
           id={`e-desc-${id}`}
+          rows={6}
           value={description}
-          placeholder="Shown on the product page"
+          placeholder="What it is, what's in it, who it's for…"
           onChange={(e) => setDescription(e.target.value)}
         />
       </Field>
+
+      <p className="mt-4 text-xs font-semibold text-muted">
+        Search &amp; social — leave blank to reuse the name and description
+      </p>
+      <div className="mt-2 max-w-3xl space-y-3">
+        <Field
+          label="SEO title"
+          htmlFor={`e-seotitle-${id}`}
+          hint={`${seoTitle.length}/60 — search engines typically truncate beyond this`}
+        >
+          <Input
+            id={`e-seotitle-${id}`}
+            value={seoTitle}
+            placeholder={product.name}
+            onChange={(e) => setSeoTitle(e.target.value)}
+          />
+        </Field>
+        <Field
+          label="SEO description"
+          htmlFor={`e-seodesc-${id}`}
+          hint={`${seoDescription.length}/160 — shown as the search result snippet`}
+        >
+          <Textarea
+            id={`e-seodesc-${id}`}
+            rows={2}
+            value={seoDescription}
+            placeholder={product.description ?? "A short, enticing summary"}
+            onChange={(e) => setSeoDescription(e.target.value)}
+          />
+        </Field>
+      </div>
+
+      <div className="mt-5">
+        <ProductImages
+          productId={product.id}
+          images={product.images}
+          onChanged={onRefresh}
+        />
+      </div>
 
       <div className="mt-4 flex items-center gap-2">
         <Button type="submit" size="sm" disabled={save.isPending}>

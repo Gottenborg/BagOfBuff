@@ -71,6 +71,13 @@
       "when": 1786604784529,
       "tag": "0009_thick_starhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786611363923,
+      "tag": "0010_foamy_mister_fear",
+      "breakpoints": true
     }
   ]
 }
