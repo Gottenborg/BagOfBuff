@@ -124,11 +124,38 @@ One-time setup:
 2. Add it as a GitHub repo secret named **`FLY_API_TOKEN`**
    (Settings → Secrets and variables → Actions → New repository secret).
 
-That's the only secret the workflow needs. The public `VITE_*` build values live
-in the workflow's `env:` block (they ship to the browser, so they aren't
-secrets); update them there if the domain or Supabase project changes. Per-app
-runtime secrets (`DATABASE_URL`, `STRIPE_*`, `RESEND_*`) are still set once with
-`fly secrets` as above — the pipeline does not manage those.
+The public `VITE_*` build values live in the workflow's `env:` block (they ship
+to the browser, so they aren't secrets); update them there if the domain or
+Supabase project changes.
+
+### API runtime secrets (recommended: set them in GitHub)
+
+Rather than running `fly secrets set` locally, add these as **GitHub repo
+secrets** and the deploy workflow pushes them to Fly before deploying (staged,
+so they apply with the deploy rather than causing an extra restart):
+
+| GitHub secret | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Supabase pooler connection string (port 6543) |
+| `STRIPE_SECRET_KEY` | Stripe API key (optional until you take payments) |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (optional) |
+| `RESEND_API_KEY` | Transactional email (optional) |
+
+Only the secrets you actually set are sent, so partial configuration is fine.
+Setting them with `fly secrets set` directly still works and takes precedence
+until the next deploy.
+
+> **`DATABASE_URL` gotcha:** copy the URI verbatim from Supabase → Connect →
+> Connection pooling (Transaction, 6543). If the password contains `@ # ? / % :`
+> it must be percent-encoded, or the URL parses wrong and you get
+> `password authentication failed`. A password of letters and digits avoids this.
+
+### Health gate
+
+After deploying the API, the workflow polls `/health` and **fails the run** if
+the API cannot reach Postgres. `/health` executes a real query, so a green
+deploy now means the API is genuinely serving — not merely that the container
+booted.
 
 The Fly apps must already exist (`fly apps create …`) before the first run.
 
