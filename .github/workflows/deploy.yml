@@ -56,9 +56,53 @@ jobs:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
+      # Keep the API's runtime secrets in GitHub (one place for all config) and
+      # push them to Fly here. `--stage` applies them with the deploy that
+      # follows instead of triggering a separate machine restart. Only secrets
+      # that are actually set are sent, so partial configuration is fine.
+      - name: Stage API secrets on Fly
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          set -euo pipefail
+          args=()
+          [ -n "${DATABASE_URL:-}" ] && args+=("DATABASE_URL=$DATABASE_URL") || true
+          [ -n "${STRIPE_SECRET_KEY:-}" ] && args+=("STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY") || true
+          [ -n "${STRIPE_WEBHOOK_SECRET:-}" ] && args+=("STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET") || true
+          [ -n "${RESEND_API_KEY:-}" ] && args+=("RESEND_API_KEY=$RESEND_API_KEY") || true
+          if [ ${#args[@]} -eq 0 ]; then
+            echo "No API secrets configured in GitHub — leaving Fly secrets as-is."
+          else
+            echo "Staging ${#args[@]} secret(s) on bagofbuff-api."
+            flyctl secrets set --app bagofbuff-api --stage "${args[@]}"
+          fi
+
       # Remote builders do the Docker build on Fly, so the runner needs no Docker.
       - name: Deploy API
         run: flyctl deploy --config fly.api.toml --remote-only
+
+      # Fail the deploy if the API can't reach its database. /health returns 503
+      # with the reason when Postgres is unreachable, so a broken deployment can
+      # no longer report success.
+      - name: Verify API health
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5; do
+            body=$(curl -sS --max-time 30 -w '\n%{http_code}' https://bagofbuff-api.fly.dev/health || true)
+            code=$(printf '%s' "$body" | tail -n1)
+            payload=$(printf '%s' "$body" | sed '$d')
+            echo "attempt $attempt: HTTP ${code:-none} $payload"
+            if [ "${code:-}" = "200" ]; then
+              echo "API healthy and connected to the database."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::API is not healthy. See the payload above for the cause."
+          exit 1
 
       - name: Deploy storefront
         run: |

@@ -80,20 +80,20 @@ function Plans() {
 
       {plans.data && (
         <Card className="mt-8 overflow-hidden">
-          <table className="w-full border-collapse text-sm">
+          <table className="w-full border-collapse text-[13px]">
             <thead>
-              <tr className="border-b border-border text-left text-muted">
-                <th className="px-5 py-3 font-semibold">Plan</th>
-                <th className="px-5 py-3 font-semibold">Cadence</th>
-                <th className="px-5 py-3 font-semibold">Price</th>
-                <th className="px-5 py-3 font-semibold">Status</th>
-                <th className="px-5 py-3 font-semibold"></th>
+              <tr className="border-b border-border bg-subtle/60 text-left text-muted">
+                <th className="px-4 py-2.5 font-semibold">Plan</th>
+                <th className="px-4 py-2.5 font-semibold">Cadence</th>
+                <th className="px-4 py-2.5 font-semibold">Price</th>
+                <th className="px-4 py-2.5 font-semibold">Status</th>
+                <th className="px-4 py-2.5 font-semibold"></th>
               </tr>
             </thead>
             <tbody>
               {plans.data.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-5 py-6 text-center text-muted">
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted">
                     No plans yet.
                   </td>
                 </tr>
@@ -103,21 +103,21 @@ function Plans() {
                   key={plan.id}
                   className="border-b border-subtle last:border-0"
                 >
-                  <td className="px-5 py-3 font-medium">{plan.name}</td>
-                  <td className="px-5 py-3 text-muted">
+                  <td className="px-4 py-2.5 font-medium">{plan.name}</td>
+                  <td className="px-4 py-2.5 text-muted">
                     {intervalLabel(plan.interval, plan.intervalCount)}
                   </td>
-                  <td className="px-5 py-3 tabular-nums">
+                  <td className="px-4 py-2.5 tabular-nums">
                     {formatPrice(plan.priceCents, plan.currency)}
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="px-4 py-2.5">
                     {plan.active ? (
                       <Badge variant="success">Active</Badge>
                     ) : (
                       <Badge variant="neutral">Inactive</Badge>
                     )}
                   </td>
-                  <td className="px-5 py-3 text-right">
+                  <td className="px-4 py-2.5 text-right">
                     <Button
                       variant="ghost"
                       size="sm"
