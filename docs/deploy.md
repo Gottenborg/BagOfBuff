@@ -150,6 +150,20 @@ until the next deploy.
 > it must be percent-encoded, or the URL parses wrong and you get
 > `password authentication failed`. A password of letters and digits avoids this.
 
+**Check the string before you save it as a secret** — this takes seconds and
+avoids a deploy cycle spent discovering it was wrong:
+
+```bash
+cd apps/api
+DATABASE_URL="postgresql://…" bun run db:check
+```
+
+It inspects the URL for the mistakes that actually happen (placeholder left in,
+un-encoded `@`/`#`, plain `postgres` username against the pooler, wrong port),
+then makes a real connection and translates the driver error into the remedy.
+It prints the user/host/port and the password's length — never the password.
+Exit 0 means the string is good.
+
 ### Health gate
 
 After deploying the API, the workflow polls `/health` and **fails the run** if
