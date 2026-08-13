@@ -15,6 +15,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:seed": "bun src/db/seed.ts",
+    "db:check": "bun scripts/check-db.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
