@@ -3,6 +3,56 @@
 /* Shared Bag of Buff design tokens (colours, radii, type). */
 @import "../../../packages/ui/src/theme.css";
 
+/*
+ * Back-office theme.
+ *
+ * The storefront's brand palette (warm cream paper + golden yellow) is built to
+ * sell to consumers. A back office is a tool people stare at for hours, so it
+ * wants the opposite: neutral surfaces, high text contrast, and dense tables —
+ * the brand colour earns its place only on primary actions and active state.
+ *
+ * These overrides are scoped to this app and re-declare the same tokens the
+ * shared UI components already consume, so every component re-skins without any
+ * change to packages/ui and without affecting the storefront.
+ */
+@theme {
+  /* True neutral grey scale, replacing the warm "ink" ramp. */
+  --color-ink-50: #f9fafb;
+  --color-ink-100: #f3f4f6;
+  --color-ink-200: #e5e7eb;
+  --color-ink-300: #d1d5db;
+  --color-ink-400: #9ca3af;
+  --color-ink-500: #6b7280;
+  --color-ink-600: #4b5563;
+  --color-ink-700: #374151;
+  --color-ink-800: #1f2937;
+  --color-ink-900: #111827;
+  --color-ink-950: #030712;
+
+  /* Surfaces: white cards on a light grey page, crisp hairline borders. */
+  --color-paper: #ffffff;
+  --color-background: #f7f8fa;
+  --color-foreground: #111827;
+  --color-muted: #6b7280;
+  --color-subtle: #f3f4f6;
+  --color-border: #e5e7eb;
+
+  /* Brand yellow stays for primary actions; links use a darker shade so text
+     on white clears WCAG AA (the 400/500 yellows do not). */
+  --color-brand: var(--color-buff-400);
+  --color-brand-strong: #a45414;
+  --color-brand-foreground: #111827;
+
+  /* Status colours tuned for contrast on white. */
+  --color-success: #15803d;
+  --color-danger: #b91c1c;
+
+  /* Tighter radii — admin surfaces read as tools, not marketing cards. */
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+}
+
 /* Include shared UI package classes in Tailwind's content scan. */
 @source "../../../packages/ui/src/**/*.{ts,tsx}";
 
