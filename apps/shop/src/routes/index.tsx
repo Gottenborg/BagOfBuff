@@ -49,6 +49,16 @@ function Home() {
           {products?.map((product) => (
             <li key={product.id}>
               <Card className="flex h-full flex-col p-5">
+                {product.images[0] && (
+                  <Link to="/products/$slug" params={{ slug: product.slug }}>
+                    <img
+                      src={product.images[0].url}
+                      alt={product.images[0].alt}
+                      className="mb-3 aspect-square w-full rounded-md object-cover"
+                      loading="lazy"
+                    />
+                  </Link>
+                )}
                 <Link
                   to="/products/$slug"
                   params={{ slug: product.slug }}

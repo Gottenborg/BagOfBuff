@@ -9,6 +9,8 @@ function product(overrides: Partial<Product> = {}): Product {
     sku: "BAG-OF-BUFF",
     name: "Bag of Buff",
     description: null,
+    seoTitle: null,
+    seoDescription: null,
     priceCents: 22400,
     compareAtCents: null,
     currency: "DKK",

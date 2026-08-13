@@ -2,10 +2,12 @@ import { and, eq, gte, inArray, min } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { db } from "../../db";
 import {
+  productImages,
   productPriceHistory,
   productPrices,
   products,
   type Product,
+  type ProductImage,
   type ProductPrice,
 } from "../../db/schema";
 import {
@@ -66,6 +68,24 @@ async function omnibusLowest(
   );
 }
 
+/** Gallery images for a set of products, grouped by product id. */
+async function imagesForProducts(
+  productIds: string[],
+): Promise<Map<string, ProductImage[]>> {
+  if (productIds.length === 0) return new Map();
+  const rows = await db
+    .select()
+    .from(productImages)
+    .where(inArray(productImages.productId, productIds));
+  const byProduct = new Map<string, ProductImage[]>();
+  for (const row of rows) {
+    const list = byProduct.get(row.productId) ?? [];
+    list.push(row);
+    byProduct.set(row.productId, list);
+  }
+  return byProduct;
+}
+
 const Unauthorized = t.Object({ message: t.String() });
 const Forbidden = t.Object({ message: t.String() });
 const NotFound = t.Object({ message: t.String() });
@@ -93,12 +113,23 @@ const PriceModel = t.Object({
  * needs no currency logic; `prices` carries every stored currency for the back
  * office, and `missingCurrencies` flags markets with no deliberate price yet.
  */
+const ImageModel = t.Object({
+  id: t.String(),
+  url: t.String(),
+  alt: t.String(),
+  position: Int,
+});
+
 const ProductModel = t.Object({
   id: t.String(),
   slug: t.String(),
   sku: t.String(),
   name: t.String(),
   description: t.Nullable(t.String()),
+  seoTitle: t.Nullable(t.String()),
+  seoDescription: t.Nullable(t.String()),
+  /** Ordered gallery; the first is the primary/social image. */
+  images: t.Array(ImageModel),
   priceCents: Int,
   compareAtCents: t.Nullable(Int),
   /** EU Omnibus: lowest price in the prior 30 days, in the same currency. */
@@ -124,6 +155,8 @@ const CreateProductBody = t.Object({
   sku: t.String({ minLength: 1 }),
   name: t.String({ minLength: 1 }),
   description: t.Optional(t.Nullable(t.String())),
+  seoTitle: t.Optional(t.Nullable(t.String())),
+  seoDescription: t.Optional(t.Nullable(t.String())),
   /** At least one currency; others can be added later. */
   prices: t.Array(PriceInput, { minItems: 1 }),
   stock: t.Optional(t.Integer({ minimum: 0 })),
@@ -137,6 +170,8 @@ const UpdateProductBody = t.Partial(
     sku: t.String({ minLength: 1 }),
     name: t.String({ minLength: 1 }),
     description: t.Nullable(t.String()),
+    seoTitle: t.Nullable(t.String()),
+    seoDescription: t.Nullable(t.String()),
     /** Currencies present here are replaced; others are left untouched. */
     prices: t.Array(PriceInput),
     stock: t.Integer({ minimum: 0 }),
@@ -149,6 +184,7 @@ function serialize(
   prices: ProductPrice[] | undefined,
   currency: Currency,
   lowestPriceCents30d: number | null,
+  images: ProductImage[] = [],
 ) {
   const resolved = resolvePrice(product, prices, currency);
   return {
@@ -157,6 +193,12 @@ function serialize(
     sku: product.sku,
     name: product.name,
     description: product.description,
+    seoTitle: product.seoTitle,
+    seoDescription: product.seoDescription,
+    images: images
+      .slice()
+      .sort((a, b) => a.position - b.position)
+      .map((i) => ({ id: i.id, url: i.url, alt: i.alt, position: i.position })),
     priceCents: resolved.priceCents,
     compareAtCents: resolved.compareAtCents,
     lowestPriceCents30d,
@@ -275,12 +317,19 @@ export const productsRoutes = new Elysia({
         : await db.select().from(products).where(eq(products.active, true));
 
       const ids = rows.map((p) => p.id);
-      const [priceMap, lowest] = await Promise.all([
+      const [priceMap, lowest, imageMap] = await Promise.all([
         pricesForProducts(ids),
         omnibusLowest(ids, currency),
+        imagesForProducts(ids),
       ]);
       return rows.map((p) =>
-        serialize(p, priceMap.get(p.id), currency, lowest.get(p.id) ?? null),
+        serialize(
+          p,
+          priceMap.get(p.id),
+          currency,
+          lowest.get(p.id) ?? null,
+          imageMap.get(p.id) ?? [],
+        ),
       );
     },
     {
@@ -306,15 +355,17 @@ export const productsRoutes = new Elysia({
         .where(eq(products.slug, params.slug))
         .limit(1);
       if (!product) return status(404, { message: "Product not found" });
-      const [priceMap, lowest] = await Promise.all([
+      const [priceMap, lowest, imageMap] = await Promise.all([
         pricesForProducts([product.id]),
         omnibusLowest([product.id], currency),
+        imagesForProducts([product.id]),
       ]);
       return serialize(
         product,
         priceMap.get(product.id),
         currency,
         lowest.get(product.id) ?? null,
+        imageMap.get(product.id) ?? [],
       );
     },
     {
@@ -339,6 +390,8 @@ export const productsRoutes = new Elysia({
             sku: body.sku,
             name: body.name,
             description: body.description ?? null,
+            seoTitle: body.seoTitle ?? null,
+            seoDescription: body.seoDescription ?? null,
             stock: body.stock ?? 0,
             active: body.active ?? true,
             currency: base.currency,
@@ -403,12 +456,16 @@ export const productsRoutes = new Elysia({
           .returning();
         if (!updated) return status(404, { message: "Product not found" });
 
-        const priceMap = await pricesForProducts([updated.id]);
+        const [priceMap, imageMap] = await Promise.all([
+          pricesForProducts([updated.id]),
+          imagesForProducts([updated.id]),
+        ]);
         return serialize(
           updated,
           priceMap.get(updated.id),
           BASE_CURRENCY,
           null,
+          imageMap.get(updated.id) ?? [],
         );
       } catch (err) {
         if (isUniqueViolation(err)) {
@@ -435,6 +492,135 @@ export const productsRoutes = new Elysia({
       detail: { summary: "Update a product (admin)" },
     },
   )
+  // --- Admin: gallery ------------------------------------------------------
+  // Files are uploaded straight from the back office to Supabase Storage (the
+  // browser holds the session, and large uploads shouldn't be proxied through
+  // the API); this records the resulting public URL and its ordering.
+  .post(
+    "/:id/images",
+    async ({ params, body, status }) => {
+      const [product] = await db
+        .select({ id: products.id })
+        .from(products)
+        .where(eq(products.id, params.id))
+        .limit(1);
+      if (!product) return status(404, { message: "Product not found" });
+
+      // Append to the end of the gallery unless a position is given.
+      const existing = await db
+        .select({ position: productImages.position })
+        .from(productImages)
+        .where(eq(productImages.productId, params.id));
+      const nextPosition =
+        body.position ??
+        existing.reduce((max, r) => Math.max(max, r.position + 1), 0);
+
+      const [created] = await db
+        .insert(productImages)
+        .values({
+          productId: params.id,
+          url: body.url,
+          alt: body.alt ?? "",
+          position: nextPosition,
+        })
+        .returning();
+      return status(201, {
+        id: created!.id,
+        url: created!.url,
+        alt: created!.alt,
+        position: created!.position,
+      });
+    },
+    {
+      beforeHandle: async ({ user, status }) => {
+        if (!user) return status(401, { message: "Unauthorized" });
+        if (!(await isAdmin(user.id)))
+          return status(403, { message: "Forbidden" });
+      },
+      params: t.Object({ id: t.String() }),
+      body: t.Object({
+        url: t.String({ minLength: 1 }),
+        alt: t.Optional(t.String()),
+        position: t.Optional(t.Integer({ minimum: 0 })),
+      }),
+      response: {
+        201: ImageModel,
+        401: Unauthorized,
+        403: Forbidden,
+        404: NotFound,
+      },
+      detail: { summary: "Attach an uploaded image to a product (admin)" },
+    },
+  )
+  .patch(
+    "/images/:imageId",
+    async ({ params, body, status }) => {
+      const [updated] = await db
+        .update(productImages)
+        .set(body)
+        .where(eq(productImages.id, params.imageId))
+        .returning();
+      if (!updated) return status(404, { message: "Image not found" });
+      return {
+        id: updated.id,
+        url: updated.url,
+        alt: updated.alt,
+        position: updated.position,
+      };
+    },
+    {
+      beforeHandle: async ({ user, status }) => {
+        if (!user) return status(401, { message: "Unauthorized" });
+        if (!(await isAdmin(user.id)))
+          return status(403, { message: "Forbidden" });
+      },
+      params: t.Object({ imageId: t.String() }),
+      body: t.Partial(
+        t.Object({
+          alt: t.String(),
+          /** Lower sorts first; the lowest is the primary/social image. */
+          position: t.Integer({ minimum: 0 }),
+        }),
+      ),
+      response: {
+        200: ImageModel,
+        401: Unauthorized,
+        403: Forbidden,
+        404: NotFound,
+      },
+      detail: { summary: "Update an image's alt text or order (admin)" },
+    },
+  )
+  .delete(
+    "/images/:imageId",
+    async ({ params, status }) => {
+      const [removed] = await db
+        .delete(productImages)
+        .where(eq(productImages.id, params.imageId))
+        .returning();
+      if (!removed) return status(404, { message: "Image not found" });
+      return { id: removed.id };
+    },
+    {
+      beforeHandle: async ({ user, status }) => {
+        if (!user) return status(401, { message: "Unauthorized" });
+        if (!(await isAdmin(user.id)))
+          return status(403, { message: "Forbidden" });
+      },
+      params: t.Object({ imageId: t.String() }),
+      response: {
+        200: t.Object({ id: t.String() }),
+        401: Unauthorized,
+        403: Forbidden,
+        404: NotFound,
+      },
+      detail: {
+        summary: "Remove an image from a product (admin)",
+        description:
+          "Removes the gallery entry. The file itself is deleted from storage by the back office.",
+      },
+    },
+  )
   .delete(
     "/:id",
     async ({ params, status }) => {
@@ -446,8 +632,17 @@ export const productsRoutes = new Elysia({
         .where(eq(products.id, params.id))
         .returning();
       if (!archived) return status(404, { message: "Product not found" });
-      const priceMap = await pricesForProducts([archived.id]);
-      return serialize(archived, priceMap.get(archived.id), BASE_CURRENCY, null);
+      const [priceMap, imageMap] = await Promise.all([
+        pricesForProducts([archived.id]),
+        imagesForProducts([archived.id]),
+      ]);
+      return serialize(
+        archived,
+        priceMap.get(archived.id),
+        BASE_CURRENCY,
+        null,
+        imageMap.get(archived.id) ?? [],
+      );
     },
     {
       beforeHandle: async ({ user, status }) => {

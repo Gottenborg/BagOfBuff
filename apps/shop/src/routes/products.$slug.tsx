@@ -17,17 +17,30 @@ export const Route = createFileRoute("/products/$slug")({
     if (error || !data) throw notFound();
     return data;
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          { title: `${loaderData.name} — Bag of Buff` },
-          { name: "description", content: loaderData.description ?? "" },
-          { property: "og:title", content: loaderData.name },
-          { property: "og:description", content: loaderData.description ?? "" },
-          { property: "og:type", content: "product" },
-        ]
-      : [],
-  }),
+  head: ({ loaderData }) => {
+    if (!loaderData) return { meta: [] };
+    // SEO overrides win; otherwise fall back to the on-page copy so every
+    // product has sensible tags without extra work.
+    const title = loaderData.seoTitle?.trim() || loaderData.name;
+    const description =
+      loaderData.seoDescription?.trim() || loaderData.description || "";
+    const image = loaderData.images[0]?.url;
+    return {
+      meta: [
+        { title: `${title} — Bag of Buff` },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "product" },
+        ...(image
+          ? [
+              { property: "og:image", content: image },
+              { name: "twitter:card", content: "summary_large_image" },
+            ]
+          : []),
+      ],
+    };
+  },
   component: ProductDetail,
 });
 
@@ -44,8 +57,33 @@ function ProductDetail() {
         </Heading>
         <PriceBlock product={product} />
 
+        {product.images.length > 0 && (
+          <div className="mt-6 flex flex-wrap gap-3">
+            {product.images.map((image, i) => (
+              <img
+                key={image.id}
+                src={image.url}
+                alt={image.alt}
+                // The first image is the hero; the rest are secondary views.
+                className={
+                  i === 0
+                    ? "w-full max-w-md rounded-lg object-cover"
+                    : "h-24 w-24 rounded-md object-cover"
+                }
+                loading={i === 0 ? "eager" : "lazy"}
+              />
+            ))}
+          </div>
+        )}
+
         {product.description && (
-          <Text className="mt-4 text-ink-700">{product.description}</Text>
+          <div className="mt-4 space-y-3 text-ink-700">
+            {product.description
+              .split(/\n{2,}/)
+              .map((paragraph, i) => (
+                <Text key={i}>{paragraph}</Text>
+              ))}
+          </div>
         )}
 
         <div className="mt-4">
