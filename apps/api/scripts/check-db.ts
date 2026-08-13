@@ -14,6 +14,7 @@
  * password.
  */
 import postgres from "postgres";
+import { sslForConnectionString } from "../src/lib/pg-ssl";
 
 const url = process.env.DATABASE_URL;
 
@@ -144,10 +145,15 @@ if (notes.length) console.log("");
 
 // --- Live connection --------------------------------------------------------
 
+// Connect exactly like the API does (same TLS policy), so a string that passes
+// this check behaves identically in production.
+const ssl = sslForConnectionString(url);
+console.log(`TLS: ${ssl ?? "per sslmode in URL"}`);
 console.log("Connecting…");
 
 const sql = postgres(url, {
   prepare: false,
+  ssl,
   connect_timeout: 10,
   // One connection, no retries: this is a check, not a workload.
   max: 1,
@@ -194,6 +200,16 @@ try {
       "  Could not reach the host on that port. Check the port (6543 pooler /",
     );
     console.error("  5432 direct) and that outbound access isn't blocked.");
+  } else if (/ESSLREQUIRED|SSL connection is required/i.test(message)) {
+    console.error(
+      "  The server requires TLS but the connection was attempted in the clear.",
+    );
+    console.error(
+      "  This should not happen — the client requests TLS automatically for",
+    );
+    console.error(
+      "  remote hosts. Check for an explicit sslmode=disable in the URL.",
+    );
   } else if (/Tenant or user not found/i.test(message)) {
     console.error(
       "  The pooler didn't recognise the tenant: the username must be",
