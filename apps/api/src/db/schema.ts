@@ -311,6 +311,45 @@ export type OrderItem = typeof orderItems.$inferSelect;
 export type NewOrderItem = typeof orderItems.$inferInsert;
 
 /**
+ * Refunds issued against an order.
+ *
+ * Kept as rows rather than a status on the order because an order can be
+ * refunded more than once (partially), and consumer law requires being able to
+ * show what was returned, when, and why. Stripe remains the source of truth for
+ * the money; this records our side, keyed by the Stripe refund id so a
+ * redelivered webhook cannot double-count.
+ */
+export const refunds = pgTable("refunds", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  orderId: text("order_id")
+    .notNull()
+    .references(() => orders.id, { onDelete: "cascade" }),
+  /** Stripe Refund id — unique, so webhook handling is idempotent. */
+  stripeRefundId: text("stripe_refund_id").unique(),
+  amountCents: integer("amount_cents").notNull(),
+  currency: text("currency").notNull(),
+  /**
+   * Why the money went back. `requested_by_customer` covers the statutory
+   * 14-day withdrawal; the rest map to Stripe's reasons.
+   */
+  reason: text("reason").notNull().default("requested_by_customer"),
+  /** Free-text context for the back office (not sent to Stripe). */
+  note: text("note"),
+  /** pending → succeeded | failed, mirrored from Stripe. */
+  status: text("status").notNull().default("pending"),
+  /** Supabase user id of the admin who issued it. */
+  createdBy: text("created_by"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+}).enableRLS();
+
+export type Refund = typeof refunds.$inferSelect;
+export type NewRefund = typeof refunds.$inferInsert;
+
+/**
  * Subscription plans ("subscribe & save") for a product. Each plan maps to a
  * recurring Stripe Price (created in Stripe when the plan is created); we store
  * the Stripe product/price ids so checkout and Billing stay in sync. Interval
