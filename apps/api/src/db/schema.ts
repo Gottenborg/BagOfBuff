@@ -5,6 +5,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -52,6 +53,42 @@ export const products = pgTable("products", {
 
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
+
+/**
+ * Per-currency prices. Bag of Buff sells in kroner at home and euro across the
+ * rest of the EU, and a price is a business decision per market — not a live FX
+ * conversion — so each currency gets its own stored amount.
+ *
+ * `products.priceCents` / `products.currency` remain as the base-currency price
+ * and are kept in step with the base row here, so anything reading a product
+ * still sees a sensible single price.
+ */
+export const productPrices = pgTable(
+  "product_prices",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    /** ISO-4217, uppercase. See lib/currency for the supported set. */
+    currency: text("currency").notNull(),
+    priceCents: integer("price_cents").notNull(),
+    /** Reference price for a promotion, in this same currency. */
+    compareAtCents: integer("compare_at_cents"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique("product_prices_product_currency").on(t.productId, t.currency)],
+).enableRLS();
+
+export type ProductPrice = typeof productPrices.$inferSelect;
+export type NewProductPrice = typeof productPrices.$inferInsert;
 
 /**
  * Append-only price history, written whenever a product's price is set or

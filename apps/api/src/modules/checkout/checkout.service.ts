@@ -9,6 +9,8 @@ import {
   type Product,
 } from "../../db/schema";
 import { sendOrderConfirmation } from "../../lib/email";
+import { currencyForCountry } from "../../lib/currency";
+import { pricesForProducts, resolvePrice } from "../products/prices";
 import { env } from "../../lib/env";
 import { getStripe } from "../../lib/stripe";
 import {
@@ -79,9 +81,17 @@ export async function createCheckoutSession(
     .where(inArray(products.slug, slugs));
   const bySlug = new Map<string, Product>(found.map((p) => [p.slug, p]));
 
+  // The destination decides the currency for the whole session: goods and
+  // shipping must be denominated identically, because a Stripe Checkout session
+  // has exactly one currency.
+  const country = normalizeCountry(input.country);
+  const currency = currencyForCountry(country);
+  const priceMap = await pricesForProducts(found.map((p) => p.id));
+
   const lines: {
     product: Product;
     quantity: number;
+    unitPriceCents: number;
   }[] = [];
   for (const slug of slugs) {
     const product = bySlug.get(slug);
@@ -96,22 +106,28 @@ export async function createCheckoutSession(
         message: `Not enough stock for ${product.name}`,
       };
     }
-    lines.push({ product, quantity });
+    const price = resolvePrice(product, priceMap.get(product.id), currency);
+    if (price.currency !== currency) {
+      return {
+        ok: false,
+        status: 409,
+        message: `${product.name} is not priced in ${currency} yet`,
+      };
+    }
+    lines.push({ product, quantity, unitPriceCents: price.priceCents });
   }
 
-  const currency = lines[0]!.product.currency;
   const subtotalCents = lines.reduce(
-    (sum, l) => sum + l.product.priceCents * l.quantity,
+    (sum, l) => sum + l.unitPriceCents * l.quantity,
     0,
   );
 
   // Resolve shipping for the destination and the chosen rate.
-  const country = normalizeCountry(input.country);
   const zone = await resolveZoneForCountry(country);
   if (!zone) {
     return { ok: false, status: 404, message: `We don't ship to ${country}` };
   }
-  const rates = await ratesForZone(zone.id);
+  const rates = await ratesForZone(zone.id, currency);
   const options = computeOptions(rates, subtotalCents);
   const option = options.find((o) => o.id === input.shippingRateId);
   if (!option) {
@@ -145,8 +161,8 @@ export async function createCheckoutSession(
       productId: l.product.id,
       slug: l.product.slug,
       name: l.product.name,
-      unitPriceCents: l.product.priceCents,
-      currency: l.product.currency,
+      unitPriceCents: l.unitPriceCents,
+      currency,
       quantity: l.quantity,
     })),
   );
@@ -157,7 +173,7 @@ export async function createCheckoutSession(
       quantity: l.quantity,
       price_data: {
         currency: currency.toLowerCase(),
-        unit_amount: l.product.priceCents,
+        unit_amount: l.unitPriceCents,
         // Storefront prices are shown VAT-inclusive; Stripe Tax splits out the
         // VAT portion based on the ship-to country.
         tax_behavior: "inclusive",

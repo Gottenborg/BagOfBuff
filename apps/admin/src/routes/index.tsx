@@ -22,6 +22,16 @@ export const Route = createFileRoute("/")({ component: AdminRoot });
 type Product =
   paths["/products/"]["get"]["responses"][200]["content"]["application/json"][number];
 
+/** Markets we price in. DKK is base — Bag of Buff is Danish. */
+const CURRENCIES = ["DKK", "EUR"] as const;
+type Currency = (typeof CURRENCIES)[number];
+const SYMBOL: Record<Currency, string> = { DKK: "kr.", EUR: "€" };
+
+/** The stored price for one currency, or undefined when not set for that market. */
+function priceIn(product: Product, currency: Currency) {
+  return product.prices.find((p) => p.currency === currency);
+}
+
 /** Minor units <-> a euro string for form inputs. */
 function toEuros(cents: number | null): string {
   return cents === null ? "" : (cents / 100).toFixed(2);
@@ -166,8 +176,6 @@ function ProductRow({
   onToggleActive: () => void;
   toggleDisabled: boolean;
 }) {
-  const pct = discountPercent(product.compareAtCents, product.priceCents);
-
   return (
     <>
       <tr className="border-b border-border/70 last:border-0 hover:bg-subtle/40">
@@ -179,19 +187,36 @@ function ProductRow({
           {product.sku}
         </td>
         <td className="px-4 py-2.5 tabular-nums">
-          {pct !== null && (
-            <span className="mr-1.5 text-muted line-through">
-              {formatPrice(product.compareAtCents!, product.currency)}
-            </span>
-          )}
-          <span className={pct !== null ? "font-medium text-danger" : undefined}>
-            {formatPrice(product.priceCents, product.currency)}
-          </span>
-          {pct !== null && (
-            <Badge variant="danger" className="ml-2">
-              −{pct}%
-            </Badge>
-          )}
+          {CURRENCIES.map((currency) => {
+            const row = priceIn(product, currency);
+            if (!row) {
+              return (
+                <div key={currency} className="text-xs text-danger">
+                  {currency} — no price set
+                </div>
+              );
+            }
+            const rowPct = discountPercent(row.compareAtCents, row.priceCents);
+            return (
+              <div key={currency} className="whitespace-nowrap">
+                {rowPct !== null && (
+                  <span className="mr-1.5 text-muted line-through">
+                    {formatPrice(row.compareAtCents!, currency)}
+                  </span>
+                )}
+                <span
+                  className={rowPct !== null ? "font-medium text-danger" : undefined}
+                >
+                  {formatPrice(row.priceCents, currency)}
+                </span>
+                {rowPct !== null && (
+                  <Badge variant="danger" className="ml-2">
+                    −{rowPct}%
+                  </Badge>
+                )}
+              </div>
+            );
+          })}
         </td>
         <td className="px-4 py-2.5 tabular-nums">
           <span className={product.stock === 0 ? "text-danger" : undefined}>
@@ -252,46 +277,82 @@ function EditProductForm({
   const [slug, setSlug] = useState(product.slug);
   const [sku, setSku] = useState(product.sku);
   const [description, setDescription] = useState(product.description ?? "");
-  const [price, setPrice] = useState(toEuros(product.priceCents));
-  const [compareAt, setCompareAt] = useState(toEuros(product.compareAtCents));
   const [stock, setStock] = useState(String(product.stock));
-  const [percent, setPercent] = useState(() => {
-    const p = discountPercent(product.compareAtCents, product.priceCents);
-    return p === null ? "" : String(p);
-  });
 
-  /** Price and percent are two views of the same discount — keep them in sync. */
-  function changePrice(next: string) {
-    setPrice(next);
-    const p = discountPercent(
+  // One editable price per market. Prices are set per market rather than
+  // converted, so each currency carries its own price and promotion.
+  const [prices, setPrices] = useState<
+    Record<Currency, { price: string; compareAt: string; percent: string }>
+  >(() =>
+    Object.fromEntries(
+      CURRENCIES.map((c) => {
+        const row = priceIn(product, c);
+        const pct = row
+          ? discountPercent(row.compareAtCents, row.priceCents)
+          : null;
+        return [
+          c,
+          {
+            price: row ? toEuros(row.priceCents) : "",
+            compareAt: row ? toEuros(row.compareAtCents) : "",
+            percent: pct === null ? "" : String(pct),
+          },
+        ];
+      }),
+    ) as Record<Currency, { price: string; compareAt: string; percent: string }>,
+  );
+
+  function update(currency: Currency, patch: Partial<(typeof prices)[Currency]>) {
+    setPrices((prev) => ({ ...prev, [currency]: { ...prev[currency], ...patch } }));
+  }
+
+  /** Price and percent are two views of one discount — keep them in step. */
+  function changePrice(currency: Currency, next: string) {
+    const { compareAt } = prices[currency];
+    const pct = discountPercent(
       compareAt.trim() ? toCents(compareAt) : null,
       toCents(next),
     );
-    setPercent(p === null ? "" : String(p));
+    update(currency, { price: next, percent: pct === null ? "" : String(pct) });
   }
 
-  function changeCompareAt(next: string) {
-    setCompareAt(next);
-    const p = discountPercent(
+  function changeCompareAt(currency: Currency, next: string) {
+    const { price } = prices[currency];
+    const pct = discountPercent(
       next.trim() ? toCents(next) : null,
       toCents(price),
     );
-    setPercent(p === null ? "" : String(p));
+    update(currency, { compareAt: next, percent: pct === null ? "" : String(pct) });
   }
 
-  function changePercent(next: string) {
-    setPercent(next);
+  function changePercent(currency: Currency, next: string) {
     const pct = Number(next);
-    if (!next.trim() || !Number.isFinite(pct) || pct < 0 || pct >= 100) return;
-    // With no reference price yet, "20% off" means off the current price — so
-    // the current price becomes the reference and the new price is derived.
+    if (!next.trim() || !Number.isFinite(pct) || pct < 0 || pct >= 100) {
+      update(currency, { percent: next });
+      return;
+    }
+    // With no reference price yet, "20% off" means off the current price, so
+    // the current price becomes the reference.
+    const { price, compareAt } = prices[currency];
     const base = compareAt.trim() ? toCents(compareAt) : toCents(price);
-    if (!compareAt.trim()) setCompareAt(toEuros(base));
-    setPrice(toEuros(Math.round(base * (1 - pct / 100))));
+    update(currency, {
+      percent: next,
+      compareAt: toEuros(base),
+      price: toEuros(Math.round(base * (1 - pct / 100))),
+    });
   }
 
   const save = useMutation({
     mutationFn: async () => {
+      const priceInputs = CURRENCIES.filter((c) => prices[c].price.trim()).map(
+        (c) => ({
+          currency: c,
+          priceCents: toCents(prices[c].price),
+          compareAtCents: prices[c].compareAt.trim()
+            ? toCents(prices[c].compareAt)
+            : null,
+        }),
+      );
       const { error, response } = await api.PATCH("/products/{id}", {
         params: { path: { id: product.id } },
         body: {
@@ -299,11 +360,8 @@ function EditProductForm({
           slug,
           sku,
           description: description.trim() ? description : null,
-          priceCents: toCents(price),
-          // Empty clears the discount; the storefront only shows a sale when
-          // compare-at is above the current price.
-          compareAtCents: compareAt.trim() ? toCents(compareAt) : null,
           stock: Number(stock),
+          prices: priceInputs,
         },
       });
       if (error)
@@ -323,8 +381,8 @@ function EditProductForm({
         save.mutate();
       }}
     >
-      {/* items-start keeps every input on the same baseline; fields carrying a
-          hint would otherwise be pushed up by items-end. */}
+      {/* items-start keeps every input on one baseline; fields carrying a hint
+          would otherwise be pushed up by items-end. */}
       <div className="flex flex-wrap items-start gap-3">
         <Field label="Name" htmlFor={`e-name-${id}`} className="w-48">
           <Input
@@ -350,47 +408,6 @@ function EditProductForm({
             onChange={(e) => setSku(e.target.value)}
           />
         </Field>
-        <Field label="Price (€)" htmlFor={`e-price-${id}`} className="w-28">
-          <Input
-            id={`e-price-${id}`}
-            required
-            type="number"
-            step="0.01"
-            min="0"
-            value={price}
-            onChange={(e) => changePrice(e.target.value)}
-          />
-        </Field>
-        <Field
-          label="Compare at (€)"
-          htmlFor={`e-compare-${id}`}
-          className="w-32"
-          hint="Blank = not on sale"
-        >
-          <Input
-            id={`e-compare-${id}`}
-            type="number"
-            step="0.01"
-            min="0"
-            value={compareAt}
-            onChange={(e) => changeCompareAt(e.target.value)}
-          />
-        </Field>
-        <Field
-          label="Discount %"
-          htmlFor={`e-pct-${id}`}
-          className="w-28"
-          hint="Sets the price"
-        >
-          <Input
-            id={`e-pct-${id}`}
-            type="number"
-            min="0"
-            max="99"
-            value={percent}
-            onChange={(e) => changePercent(e.target.value)}
-          />
-        </Field>
         <Field label="Stock" htmlFor={`e-stock-${id}`} className="w-24">
           <Input
             id={`e-stock-${id}`}
@@ -402,6 +419,70 @@ function EditProductForm({
           />
         </Field>
       </div>
+
+      <p className="mt-4 text-xs font-semibold text-muted">
+        Pricing per market — each is set deliberately, not converted
+      </p>
+      {CURRENCIES.map((currency) => (
+        <div
+          key={currency}
+          className="mt-2 flex flex-wrap items-start gap-3 rounded-md border border-border bg-paper p-3"
+        >
+          <div className="w-12 pt-[1.375rem] text-[13px] font-semibold">
+            {currency}
+          </div>
+          <Field
+            label={`Price (${SYMBOL[currency]})`}
+            htmlFor={`e-price-${currency}-${id}`}
+            className="w-32"
+          >
+            <Input
+              id={`e-price-${currency}-${id}`}
+              type="number"
+              step="0.01"
+              min="0"
+              value={prices[currency].price}
+              onChange={(e) => changePrice(currency, e.target.value)}
+            />
+          </Field>
+          <Field
+            label="Compare at"
+            htmlFor={`e-compare-${currency}-${id}`}
+            className="w-32"
+            hint="Blank = not on sale"
+          >
+            <Input
+              id={`e-compare-${currency}-${id}`}
+              type="number"
+              step="0.01"
+              min="0"
+              value={prices[currency].compareAt}
+              onChange={(e) => changeCompareAt(currency, e.target.value)}
+            />
+          </Field>
+          <Field
+            label="Discount %"
+            htmlFor={`e-pct-${currency}-${id}`}
+            className="w-28"
+            hint="Sets the price"
+          >
+            <Input
+              id={`e-pct-${currency}-${id}`}
+              type="number"
+              min="0"
+              max="99"
+              value={prices[currency].percent}
+              onChange={(e) => changePercent(currency, e.target.value)}
+            />
+          </Field>
+          {!prices[currency].price.trim() && (
+            <p className="w-full text-xs text-danger">
+              No price for this market — customers billed in {currency} fall back
+              to the base price.
+            </p>
+          )}
+        </div>
+      ))}
 
       <Field
         label="Description"
@@ -435,18 +516,25 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
   const [slug, setSlug] = useState("");
   const [sku, setSku] = useState("");
   const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
+  const [prices, setPrices] = useState<Record<Currency, string>>({
+    DKK: "",
+    EUR: "",
+  });
 
   const create = useMutation({
     mutationFn: async () => {
+      const priceInputs = CURRENCIES.filter((c) => prices[c].trim()).map((c) => ({
+        currency: c,
+        priceCents: toCents(prices[c]),
+      }));
       const { error, response } = await api.POST("/products/", {
         body: {
           slug,
           sku,
           name,
-          priceCents: toCents(price),
           stock: stock ? Number(stock) : 0,
+          prices: priceInputs,
         },
       });
       if (error)
@@ -458,11 +546,15 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
       setSlug("");
       setSku("");
       setName("");
-      setPrice("");
       setStock("");
+      setPrices({ DKK: "", EUR: "" });
       onCreated();
     },
   });
+
+  // At least one market must be priced, and DKK is the base the rest falls
+  // back to, so require it here rather than failing at the API.
+  const canSubmit = prices.DKK.trim().length > 0;
 
   return (
     <Card>
@@ -474,7 +566,7 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
           }}
           className="flex flex-wrap items-start gap-3"
         >
-          <Field label="Name" htmlFor="np-name" className="w-48">
+          <Field label="Name" htmlFor="np-name" className="w-44">
             <Input
               id="np-name"
               required
@@ -482,7 +574,7 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
               onChange={(e) => setName(e.target.value)}
             />
           </Field>
-          <Field label="Slug" htmlFor="np-slug" className="w-40">
+          <Field label="Slug" htmlFor="np-slug" className="w-36">
             <Input
               id="np-slug"
               required
@@ -490,7 +582,7 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
               onChange={(e) => setSlug(e.target.value)}
             />
           </Field>
-          <Field label="SKU" htmlFor="np-sku" className="w-36">
+          <Field label="SKU" htmlFor="np-sku" className="w-32">
             <Input
               id="np-sku"
               required
@@ -499,18 +591,37 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
               onChange={(e) => setSku(e.target.value)}
             />
           </Field>
-          <Field label="Price (€)" htmlFor="np-price" className="w-28">
+          <Field label="Price (kr.)" htmlFor="np-dkk" className="w-28">
             <Input
-              id="np-price"
+              id="np-dkk"
               required
               type="number"
               step="0.01"
               min="0"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
+              value={prices.DKK}
+              onChange={(e) =>
+                setPrices((p) => ({ ...p, DKK: e.target.value }))
+              }
             />
           </Field>
-          <Field label="Stock" htmlFor="np-stock" className="w-24">
+          <Field
+            label="Price (€)"
+            htmlFor="np-eur"
+            className="w-28"
+            hint="Optional now"
+          >
+            <Input
+              id="np-eur"
+              type="number"
+              step="0.01"
+              min="0"
+              value={prices.EUR}
+              onChange={(e) =>
+                setPrices((p) => ({ ...p, EUR: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Stock" htmlFor="np-stock" className="w-20">
             <Input
               id="np-stock"
               type="number"
@@ -519,9 +630,9 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
               onChange={(e) => setStock(e.target.value)}
             />
           </Field>
-          {/* Aligns the button with the inputs, which sit under their labels. */}
+          {/* Aligns with the inputs, which sit under their labels. */}
           <div className="pt-[1.375rem]">
-            <Button type="submit" disabled={create.isPending}>
+            <Button type="submit" disabled={create.isPending || !canSubmit}>
               {create.isPending ? "Adding…" : "Add product"}
             </Button>
           </div>

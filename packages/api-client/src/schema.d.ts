@@ -45,7 +45,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List products (active only; drafts included for admins) */
+        /**
+         * List products (active only; drafts included for admins)
+         * @description Prices are returned in `currency` (default DKK, the base currency).
+         */
         get: operations["getProducts"];
         put?: never;
         /** Create a product (admin) */
@@ -532,6 +535,7 @@ export interface operations {
         parameters: {
             query?: {
                 includeInactive?: boolean;
+                currency?: string;
             };
             header?: never;
             path?: never;
@@ -555,6 +559,12 @@ export interface operations {
                         compareAtCents: (number | null) | null;
                         lowestPriceCents30d: (number | null) | null;
                         currency: string;
+                        prices: {
+                            currency: string;
+                            priceCents: number;
+                            compareAtCents: (number | null) | null;
+                        }[];
+                        missingCurrencies: string[];
                         stock: number;
                         active: boolean;
                         /** Format: date-time */
@@ -580,9 +590,12 @@ export interface operations {
                     sku: string;
                     name: string;
                     description?: (string | null) | null;
-                    priceCents: string | number;
-                    compareAtCents?: ((string | number) | null) | null;
-                    currency?: string;
+                    prices: {
+                        /** @enum {string} */
+                        currency: "DKK" | "EUR";
+                        priceCents: string | number;
+                        compareAtCents?: ((string | number) | null) | null;
+                    }[];
                     stock?: string | number;
                     active?: boolean;
                 };
@@ -591,9 +604,12 @@ export interface operations {
                     sku: string;
                     name: string;
                     description?: (string | null) | null;
-                    priceCents: string | number;
-                    compareAtCents?: ((string | number) | null) | null;
-                    currency?: string;
+                    prices: {
+                        /** @enum {string} */
+                        currency: "DKK" | "EUR";
+                        priceCents: string | number;
+                        compareAtCents?: ((string | number) | null) | null;
+                    }[];
                     stock?: string | number;
                     active?: boolean;
                 };
@@ -602,9 +618,12 @@ export interface operations {
                     sku: string;
                     name: string;
                     description?: (string | null) | null;
-                    priceCents: string | number;
-                    compareAtCents?: ((string | number) | null) | null;
-                    currency?: string;
+                    prices: {
+                        /** @enum {string} */
+                        currency: "DKK" | "EUR";
+                        priceCents: string | number;
+                        compareAtCents?: ((string | number) | null) | null;
+                    }[];
                     stock?: string | number;
                     active?: boolean;
                 };
@@ -627,6 +646,12 @@ export interface operations {
                         compareAtCents: (number | null) | null;
                         lowestPriceCents30d: (number | null) | null;
                         currency: string;
+                        prices: {
+                            currency: string;
+                            priceCents: number;
+                            compareAtCents: (number | null) | null;
+                        }[];
+                        missingCurrencies: string[];
                         stock: number;
                         active: boolean;
                         /** Format: date-time */
@@ -673,7 +698,9 @@ export interface operations {
     };
     getProductsBySlug: {
         parameters: {
-            query?: never;
+            query?: {
+                currency?: string;
+            };
             header?: never;
             path: {
                 slug: string;
@@ -698,6 +725,12 @@ export interface operations {
                         compareAtCents: (number | null) | null;
                         lowestPriceCents30d: (number | null) | null;
                         currency: string;
+                        prices: {
+                            currency: string;
+                            priceCents: number;
+                            compareAtCents: (number | null) | null;
+                        }[];
+                        missingCurrencies: string[];
                         stock: number;
                         active: boolean;
                         /** Format: date-time */
@@ -747,6 +780,12 @@ export interface operations {
                         compareAtCents: (number | null) | null;
                         lowestPriceCents30d: (number | null) | null;
                         currency: string;
+                        prices: {
+                            currency: string;
+                            priceCents: number;
+                            compareAtCents: (number | null) | null;
+                        }[];
+                        missingCurrencies: string[];
                         stock: number;
                         active: boolean;
                         /** Format: date-time */
@@ -807,9 +846,12 @@ export interface operations {
                     sku?: string;
                     name?: string;
                     description?: (string | null) | null;
-                    priceCents?: string | number;
-                    compareAtCents?: ((string | number) | null) | null;
-                    currency?: string;
+                    prices?: {
+                        /** @enum {string} */
+                        currency: "DKK" | "EUR";
+                        priceCents: string | number;
+                        compareAtCents?: ((string | number) | null) | null;
+                    }[];
                     stock?: string | number;
                     active?: boolean;
                 };
@@ -818,9 +860,12 @@ export interface operations {
                     sku?: string;
                     name?: string;
                     description?: (string | null) | null;
-                    priceCents?: string | number;
-                    compareAtCents?: ((string | number) | null) | null;
-                    currency?: string;
+                    prices?: {
+                        /** @enum {string} */
+                        currency: "DKK" | "EUR";
+                        priceCents: string | number;
+                        compareAtCents?: ((string | number) | null) | null;
+                    }[];
                     stock?: string | number;
                     active?: boolean;
                 };
@@ -829,9 +874,12 @@ export interface operations {
                     sku?: string;
                     name?: string;
                     description?: (string | null) | null;
-                    priceCents?: string | number;
-                    compareAtCents?: ((string | number) | null) | null;
-                    currency?: string;
+                    prices?: {
+                        /** @enum {string} */
+                        currency: "DKK" | "EUR";
+                        priceCents: string | number;
+                        compareAtCents?: ((string | number) | null) | null;
+                    }[];
                     stock?: string | number;
                     active?: boolean;
                 };
@@ -854,6 +902,12 @@ export interface operations {
                         compareAtCents: (number | null) | null;
                         lowestPriceCents30d: (number | null) | null;
                         currency: string;
+                        prices: {
+                            currency: string;
+                            priceCents: number;
+                            compareAtCents: (number | null) | null;
+                        }[];
+                        missingCurrencies: string[];
                         stock: number;
                         active: boolean;
                         /** Format: date-time */
@@ -944,6 +998,7 @@ export interface operations {
                             id: string;
                             name: string;
                         };
+                        currency: string;
                         options: {
                             id: string;
                             name: string;

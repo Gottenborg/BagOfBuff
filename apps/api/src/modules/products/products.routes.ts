@@ -1,27 +1,47 @@
 import { and, eq, gte, inArray, min } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { db } from "../../db";
-import { productPriceHistory, products, type Product } from "../../db/schema";
+import {
+  productPriceHistory,
+  productPrices,
+  products,
+  type Product,
+  type ProductPrice,
+} from "../../db/schema";
+import {
+  BASE_CURRENCY,
+  CURRENCIES,
+  toCurrency,
+  type Currency,
+} from "../../lib/currency";
 import { authPlugin, isAdmin } from "../auth/auth.plugin";
+import { hasPriceIn, pricesForProducts, resolvePrice } from "./prices";
 
 /** Omnibus window: lowest price must reflect the prior 30 days. */
 const OMNIBUS_WINDOW_DAYS = 30;
 
-/** Append a price-history point (for Omnibus lowest-price computation). */
-async function recordPrice(product: Product) {
-  await db.insert(productPriceHistory).values({
-    productId: product.id,
-    priceCents: product.priceCents,
-    currency: product.currency,
-  });
+/**
+ * Append a price-history point (for Omnibus lowest-price computation). History
+ * is per currency: the 30-day low a Danish shopper must be shown is the low in
+ * kroner, not a conversion of the euro low.
+ */
+async function recordPrice(
+  productId: string,
+  currency: string,
+  priceCents: number,
+) {
+  await db
+    .insert(productPriceHistory)
+    .values({ productId, currency, priceCents });
 }
 
 /**
- * Lowest recorded price per product over the Omnibus window. Returns a map of
- * productId → lowest cents; products with no history in the window are absent.
+ * Lowest recorded price per product over the Omnibus window, in one currency.
+ * Products with no history in the window are absent from the map.
  */
 async function omnibusLowest(
   productIds: string[],
+  currency: Currency,
 ): Promise<Map<string, number>> {
   if (productIds.length === 0) return new Map();
   const since = new Date(Date.now() - OMNIBUS_WINDOW_DAYS * 24 * 3600 * 1000);
@@ -35,6 +55,7 @@ async function omnibusLowest(
       and(
         inArray(productPriceHistory.productId, productIds),
         gte(productPriceHistory.recordedAt, since),
+        eq(productPriceHistory.currency, currency),
       ),
     )
     .groupBy(productPriceHistory.productId);
@@ -47,6 +68,7 @@ async function omnibusLowest(
 
 const Unauthorized = t.Object({ message: t.String() });
 const Forbidden = t.Object({ message: t.String() });
+const NotFound = t.Object({ message: t.String() });
 
 /**
  * Plain number schema for response bodies. `t.Integer()` emits a coercible
@@ -57,9 +79,19 @@ const Forbidden = t.Object({ message: t.String() });
  */
 const Int = t.Number();
 
+const CurrencyLiteral = t.Union(CURRENCIES.map((c) => t.Literal(c)));
+
+const PriceModel = t.Object({
+  currency: t.String(),
+  priceCents: Int,
+  compareAtCents: t.Nullable(Int),
+});
+
 /**
- * OpenAPI response model. Timestamps are serialized to ISO strings (see
- * `serialize` below) so the generated client sees `string`, not `Date`.
+ * OpenAPI response model. `priceCents`/`compareAtCents`/`currency` are the
+ * amounts for the *requested* currency, so storefront code reads one price and
+ * needs no currency logic; `prices` carries every stored currency for the back
+ * office, and `missingCurrencies` flags markets with no deliberate price yet.
  */
 const ProductModel = t.Object({
   id: t.String(),
@@ -68,18 +100,23 @@ const ProductModel = t.Object({
   name: t.String(),
   description: t.Nullable(t.String()),
   priceCents: Int,
-  /** Regular price when discounted (compare-at); null when not on sale. */
   compareAtCents: t.Nullable(Int),
-  /** EU Omnibus: lowest price in the prior 30 days, when known. */
+  /** EU Omnibus: lowest price in the prior 30 days, in the same currency. */
   lowestPriceCents30d: t.Nullable(Int),
   currency: t.String(),
+  prices: t.Array(PriceModel),
+  missingCurrencies: t.Array(t.String()),
   stock: Int,
   active: t.Boolean(),
   createdAt: t.String({ format: "date-time" }),
   updatedAt: t.String({ format: "date-time" }),
 });
 
-const NotFound = t.Object({ message: t.String() });
+const PriceInput = t.Object({
+  currency: CurrencyLiteral,
+  priceCents: t.Integer({ minimum: 0 }),
+  compareAtCents: t.Optional(t.Nullable(t.Integer({ minimum: 0 }))),
+});
 
 /** Fields accepted when creating a product. */
 const CreateProductBody = t.Object({
@@ -87,9 +124,8 @@ const CreateProductBody = t.Object({
   sku: t.String({ minLength: 1 }),
   name: t.String({ minLength: 1 }),
   description: t.Optional(t.Nullable(t.String())),
-  priceCents: t.Integer({ minimum: 0 }),
-  compareAtCents: t.Optional(t.Nullable(t.Integer({ minimum: 0 }))),
-  currency: t.Optional(t.String({ minLength: 3, maxLength: 3 })),
+  /** At least one currency; others can be added later. */
+  prices: t.Array(PriceInput, { minItems: 1 }),
   stock: t.Optional(t.Integer({ minimum: 0 })),
   active: t.Optional(t.Boolean()),
 });
@@ -101,20 +137,92 @@ const UpdateProductBody = t.Partial(
     sku: t.String({ minLength: 1 }),
     name: t.String({ minLength: 1 }),
     description: t.Nullable(t.String()),
-    priceCents: t.Integer({ minimum: 0 }),
-    compareAtCents: t.Nullable(t.Integer({ minimum: 0 })),
-    currency: t.String({ minLength: 3, maxLength: 3 }),
+    /** Currencies present here are replaced; others are left untouched. */
+    prices: t.Array(PriceInput),
     stock: t.Integer({ minimum: 0 }),
     active: t.Boolean(),
   }),
 );
 
-function serialize(p: Product, lowestPriceCents30d: number | null = null) {
+function serialize(
+  product: Product,
+  prices: ProductPrice[] | undefined,
+  currency: Currency,
+  lowestPriceCents30d: number | null,
+) {
+  const resolved = resolvePrice(product, prices, currency);
   return {
-    ...p,
+    id: product.id,
+    slug: product.slug,
+    sku: product.sku,
+    name: product.name,
+    description: product.description,
+    priceCents: resolved.priceCents,
+    compareAtCents: resolved.compareAtCents,
     lowestPriceCents30d,
-    createdAt: p.createdAt.toISOString(),
-    updatedAt: p.updatedAt.toISOString(),
+    currency: resolved.currency,
+    prices: (prices ?? []).map((p) => ({
+      currency: p.currency,
+      priceCents: p.priceCents,
+      compareAtCents: p.compareAtCents,
+    })),
+    missingCurrencies: CURRENCIES.filter((c) => !hasPriceIn(prices, c)),
+    stock: product.stock,
+    active: product.active,
+    createdAt: product.createdAt.toISOString(),
+    updatedAt: product.updatedAt.toISOString(),
+  };
+}
+
+/**
+ * Upserts the given per-currency prices and records an Omnibus history point
+ * for each currency whose price actually changed. Returns the base-currency
+ * amounts so `products.*` can be kept in step.
+ */
+async function writePrices(
+  productId: string,
+  inputs: { currency: Currency; priceCents: number; compareAtCents?: number | null }[],
+): Promise<{ priceCents: number; compareAtCents: number | null; currency: Currency } | null> {
+  const existing = await db
+    .select()
+    .from(productPrices)
+    .where(eq(productPrices.productId, productId));
+
+  for (const input of inputs) {
+    const prior = existing.find((e) => e.currency === input.currency);
+    await db
+      .insert(productPrices)
+      .values({
+        productId,
+        currency: input.currency,
+        priceCents: input.priceCents,
+        compareAtCents: input.compareAtCents ?? null,
+      })
+      .onConflictDoUpdate({
+        target: [productPrices.productId, productPrices.currency],
+        set: {
+          priceCents: input.priceCents,
+          compareAtCents: input.compareAtCents ?? null,
+          updatedAt: new Date(),
+        },
+      });
+
+    if (!prior || prior.priceCents !== input.priceCents) {
+      await recordPrice(productId, input.currency, input.priceCents);
+    }
+  }
+
+  // Keep the denormalised base price on `products` in step, preferring the
+  // base currency and otherwise the first price given.
+  const base =
+    inputs.find((i) => i.currency === BASE_CURRENCY) ??
+    existing.find((e) => e.currency === BASE_CURRENCY) ??
+    inputs[0];
+  if (!base) return null;
+  return {
+    currency: base.currency as Currency,
+    priceCents: base.priceCents,
+    compareAtCents: base.compareAtCents ?? null,
   };
 }
 
@@ -137,10 +245,14 @@ function conflictMessage(err: unknown): string {
     typeof err === "object" && err !== null && "constraint_name" in err
       ? String((err as { constraint_name?: unknown }).constraint_name ?? "")
       : "";
-  if (constraint.includes("sku")) return "That SKU is already used by another product";
-  if (constraint.includes("slug")) return "That slug is already used by another product";
+  if (constraint.includes("sku"))
+    return "That SKU is already used by another product";
+  if (constraint.includes("slug"))
+    return "That slug is already used by another product";
   return "A product with those details already exists";
 }
+
+const CurrencyQuery = t.Optional(t.String({ minLength: 3, maxLength: 3 }));
 
 export const productsRoutes = new Elysia({
   prefix: "/products",
@@ -151,6 +263,7 @@ export const productsRoutes = new Elysia({
   .get(
     "/",
     async ({ query, user }) => {
+      const currency = toCurrency(query.currency);
       // `includeInactive` (drafts) is honoured only for admins; anonymous or
       // non-admin callers always get active products.
       const showAll =
@@ -160,43 +273,86 @@ export const productsRoutes = new Elysia({
       const rows = showAll
         ? await db.select().from(products)
         : await db.select().from(products).where(eq(products.active, true));
-      const lowest = await omnibusLowest(rows.map((p) => p.id));
-      return rows.map((p) => serialize(p, lowest.get(p.id) ?? null));
+
+      const ids = rows.map((p) => p.id);
+      const [priceMap, lowest] = await Promise.all([
+        pricesForProducts(ids),
+        omnibusLowest(ids, currency),
+      ]);
+      return rows.map((p) =>
+        serialize(p, priceMap.get(p.id), currency, lowest.get(p.id) ?? null),
+      );
     },
     {
-      query: t.Object({ includeInactive: t.Optional(t.Boolean()) }),
+      query: t.Object({
+        includeInactive: t.Optional(t.Boolean()),
+        currency: CurrencyQuery,
+      }),
       response: { 200: t.Array(ProductModel) },
       detail: {
         summary: "List products (active only; drafts included for admins)",
+        description:
+          "Prices are returned in `currency` (default DKK, the base currency).",
       },
     },
   )
   .get(
     "/:slug",
-    async ({ params, status }) => {
+    async ({ params, query, status }) => {
+      const currency = toCurrency(query.currency);
       const [product] = await db
         .select()
         .from(products)
         .where(eq(products.slug, params.slug))
         .limit(1);
       if (!product) return status(404, { message: "Product not found" });
-      const lowest = await omnibusLowest([product.id]);
-      return serialize(product, lowest.get(product.id) ?? null);
+      const [priceMap, lowest] = await Promise.all([
+        pricesForProducts([product.id]),
+        omnibusLowest([product.id], currency),
+      ]);
+      return serialize(
+        product,
+        priceMap.get(product.id),
+        currency,
+        lowest.get(product.id) ?? null,
+      );
     },
     {
       params: t.Object({ slug: t.String() }),
+      query: t.Object({ currency: CurrencyQuery }),
       response: { 200: ProductModel, 404: NotFound },
       detail: { summary: "Get a product by slug" },
     },
   )
-  // --- Admin writes (to be protected in BAG-12) ---------------------------
+  // --- Admin writes -------------------------------------------------------
   .post(
     "/",
     async ({ body, status }) => {
       try {
-        const [created] = await db.insert(products).values(body).returning();
-        await recordPrice(created!); // seed Omnibus price history
-        return status(201, serialize(created!));
+        const base =
+          body.prices.find((p) => p.currency === BASE_CURRENCY) ??
+          body.prices[0]!;
+        const [created] = await db
+          .insert(products)
+          .values({
+            slug: body.slug,
+            sku: body.sku,
+            name: body.name,
+            description: body.description ?? null,
+            stock: body.stock ?? 0,
+            active: body.active ?? true,
+            currency: base.currency,
+            priceCents: base.priceCents,
+            compareAtCents: base.compareAtCents ?? null,
+          })
+          .returning();
+
+        await writePrices(created!.id, body.prices);
+        const priceMap = await pricesForProducts([created!.id]);
+        return status(
+          201,
+          serialize(created!, priceMap.get(created!.id), base.currency, null),
+        );
       } catch (err) {
         if (isUniqueViolation(err)) {
           return status(409, { message: conflictMessage(err) });
@@ -224,22 +380,36 @@ export const productsRoutes = new Elysia({
     "/:id",
     async ({ params, body, status }) => {
       try {
-        // Capture the prior price so we only append history on a real change.
-        const [before] = await db
-          .select({ priceCents: products.priceCents })
-          .from(products)
-          .where(eq(products.id, params.id))
-          .limit(1);
+        const { prices, ...fields } = body;
+
+        const base = prices?.length
+          ? await writePrices(params.id, prices)
+          : null;
+
         const [updated] = await db
           .update(products)
-          .set({ ...body, updatedAt: new Date() })
+          .set({
+            ...fields,
+            ...(base
+              ? {
+                  currency: base.currency,
+                  priceCents: base.priceCents,
+                  compareAtCents: base.compareAtCents,
+                }
+              : {}),
+            updatedAt: new Date(),
+          })
           .where(eq(products.id, params.id))
           .returning();
         if (!updated) return status(404, { message: "Product not found" });
-        if (before && before.priceCents !== updated.priceCents) {
-          await recordPrice(updated); // Omnibus: record the new price point
-        }
-        return serialize(updated);
+
+        const priceMap = await pricesForProducts([updated.id]);
+        return serialize(
+          updated,
+          priceMap.get(updated.id),
+          BASE_CURRENCY,
+          null,
+        );
       } catch (err) {
         if (isUniqueViolation(err)) {
           return status(409, { message: conflictMessage(err) });
@@ -276,7 +446,8 @@ export const productsRoutes = new Elysia({
         .where(eq(products.id, params.id))
         .returning();
       if (!archived) return status(404, { message: "Product not found" });
-      return serialize(archived);
+      const priceMap = await pricesForProducts([archived.id]);
+      return serialize(archived, priceMap.get(archived.id), BASE_CURRENCY, null);
     },
     {
       beforeHandle: async ({ user, status }) => {

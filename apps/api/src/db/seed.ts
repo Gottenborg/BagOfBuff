@@ -8,7 +8,18 @@
  */
 import { eq } from "drizzle-orm";
 import { db } from "./index";
-import { products, shippingRates, shippingZones } from "./schema";
+import {
+  productPrices,
+  products,
+  shippingRates,
+  shippingZones,
+} from "./schema";
+
+/** Prices are set per market, not converted at runtime. */
+const launchPrices = [
+  { currency: "DKK", priceCents: 22400 },
+  { currency: "EUR", priceCents: 2999 },
+];
 
 const launchProduct = {
   slug: "bag-of-buff",
@@ -16,8 +27,8 @@ const launchProduct = {
   name: "Bag of Buff",
   description:
     "The original Bag of Buff. Placeholder copy — edit this in the back office.",
-  priceCents: 2999,
-  currency: "EUR",
+  priceCents: 22400,
+  currency: "DKK",
   stock: 100,
   active: true,
 };
@@ -57,6 +68,7 @@ const shipping: {
   name: string;
   countries: string[];
   priority: number;
+  currency: string;
   rates: {
     name: string;
     priceCents: number;
@@ -69,17 +81,20 @@ const shipping: {
     name: "Denmark",
     countries: ["DK"],
     priority: 10,
+    // The home market is billed in kroner, so its rates are too — checkout
+    // offers only rates matching the destination's currency.
+    currency: "DKK",
     rates: [
       {
         name: "Standard",
-        priceCents: 490,
-        freeAboveCents: 5000,
+        priceCents: 3700,
+        freeAboveCents: 37300,
         minDeliveryDays: 1,
         maxDeliveryDays: 3,
       },
       {
         name: "Express",
-        priceCents: 990,
+        priceCents: 7400,
         minDeliveryDays: 1,
         maxDeliveryDays: 1,
       },
@@ -89,6 +104,7 @@ const shipping: {
     name: "European Union",
     countries: EU_COUNTRIES,
     priority: 50,
+    currency: "EUR",
     rates: [
       {
         name: "Standard",
@@ -109,6 +125,7 @@ const shipping: {
     name: "International",
     countries: ["GB", "NO", "CH", "US"],
     priority: 90,
+    currency: "EUR",
     rates: [
       {
         name: "Standard",
@@ -121,7 +138,7 @@ const shipping: {
 ];
 
 async function seed() {
-  await db
+  const [product] = await db
     .insert(products)
     .values(launchProduct)
     .onConflictDoUpdate({
@@ -135,8 +152,26 @@ async function seed() {
         active: launchProduct.active,
         updatedAt: new Date(),
       },
-    });
+    })
+    .returning();
   console.log(`✅ Seeded launch product: ${launchProduct.slug}`);
+
+  for (const price of launchPrices) {
+    await db
+      .insert(productPrices)
+      .values({
+        productId: product!.id,
+        currency: price.currency,
+        priceCents: price.priceCents,
+      })
+      .onConflictDoUpdate({
+        target: [productPrices.productId, productPrices.currency],
+        set: { priceCents: price.priceCents, updatedAt: new Date() },
+      });
+  }
+  console.log(
+    `✅ Seeded prices: ${launchPrices.map((p) => `${p.priceCents / 100} ${p.currency}`).join(", ")}`,
+  );
 
   for (const zone of shipping) {
     const [row] = await db
@@ -165,7 +200,7 @@ async function seed() {
         zoneId: row!.id,
         name: r.name,
         priceCents: r.priceCents,
-        currency: "EUR",
+        currency: zone.currency,
         freeAboveCents: r.freeAboveCents ?? null,
         minDeliveryDays: r.minDeliveryDays ?? null,
         maxDeliveryDays: r.maxDeliveryDays ?? null,
