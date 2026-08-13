@@ -78,6 +78,13 @@
       "when": 1786611363923,
       "tag": "0010_foamy_mister_fear",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1786627710923,
+      "tag": "0011_magical_nighthawk",
+      "breakpoints": true
     }
   ]
 }

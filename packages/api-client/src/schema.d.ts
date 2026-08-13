@@ -325,6 +325,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/orders/{id}/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refund an order, fully or partially (admin)
+         * @description Refunds through Stripe and records it. Omit `amountCents` to refund everything still outstanding; the remaining balance is computed from recorded refunds, so an order can never be over-refunded.
+         */
+        post: operations["postAdminOrdersByIdRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/orders/{id}/fulfillment": {
         parameters: {
             query?: never;
@@ -2265,6 +2285,17 @@ export interface operations {
                             currency: string;
                             quantity: number;
                         }[];
+                        refunds: {
+                            id: string;
+                            amountCents: number;
+                            currency: string;
+                            reason: string;
+                            note: (string | null) | null;
+                            status: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                        refundedCents: number;
                         /** Format: date-time */
                         createdAt: string;
                         paidAt: (string | null) | null;
@@ -2296,6 +2327,162 @@ export interface operations {
             };
             /** @description Response for status 404 */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    postAdminOrdersByIdRefund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    amountCents?: ((string | number) | null) | null;
+                    /** @enum {string} */
+                    reason?: "requested_by_customer" | "duplicate" | "fraudulent";
+                    note?: (string | null) | null;
+                    restock?: boolean;
+                };
+                "application/x-www-form-urlencoded": {
+                    amountCents?: ((string | number) | null) | null;
+                    /** @enum {string} */
+                    reason?: "requested_by_customer" | "duplicate" | "fraudulent";
+                    note?: (string | null) | null;
+                    restock?: boolean;
+                };
+                "multipart/form-data": {
+                    amountCents?: ((string | number) | null) | null;
+                    /** @enum {string} */
+                    reason?: "requested_by_customer" | "duplicate" | "fraudulent";
+                    note?: (string | null) | null;
+                    restock?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        status: string;
+                        fulfillmentStatus: string;
+                        email: (string | null) | null;
+                        currency: string;
+                        subtotalCents: number;
+                        shippingCents: number;
+                        taxCents: (number | null) | null;
+                        totalCents: (number | null) | null;
+                        shippingRateName: (string | null) | null;
+                        trackingCarrier: (string | null) | null;
+                        trackingNumber: (string | null) | null;
+                        ship: {
+                            name: (string | null) | null;
+                            line1: (string | null) | null;
+                            line2: (string | null) | null;
+                            city: (string | null) | null;
+                            postalCode: (string | null) | null;
+                            country: (string | null) | null;
+                        };
+                        items: {
+                            id: string;
+                            slug: string;
+                            name: string;
+                            unitPriceCents: number;
+                            currency: string;
+                            quantity: number;
+                        }[];
+                        refunds: {
+                            id: string;
+                            amountCents: number;
+                            currency: string;
+                            reason: string;
+                            note: (string | null) | null;
+                            status: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                        refundedCents: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        paidAt: (string | null) | null;
+                        shippedAt: (string | null) | null;
+                    };
+                };
+            };
+            /** @description Response for status 400 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 404 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 409 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 503 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2374,6 +2561,17 @@ export interface operations {
                             currency: string;
                             quantity: number;
                         }[];
+                        refunds: {
+                            id: string;
+                            amountCents: number;
+                            currency: string;
+                            reason: string;
+                            note: (string | null) | null;
+                            status: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                        refundedCents: number;
                         /** Format: date-time */
                         createdAt: string;
                         paidAt: (string | null) | null;

@@ -10,6 +10,7 @@ import {
   expireCheckoutSession,
   fulfillCheckoutSession,
 } from "./checkout.service";
+import { syncRefundFromStripe } from "../orders/refunds.service";
 import {
   handleInvoicePaid,
   handleInvoicePaymentFailed,
@@ -146,6 +147,12 @@ export const checkoutRoutes = new Elysia({
         case "customer.subscription.updated":
         case "customer.subscription.deleted":
           await syncSubscription(event.data.object);
+          break;
+        // Refunds issued from the Stripe dashboard, and ones that settle
+        // asynchronously, must show up here too.
+        case "refund.created":
+        case "refund.updated":
+          await syncRefundFromStripe(event.data.object);
           break;
         default:
           // Unhandled event types are acknowledged so Stripe stops retrying.

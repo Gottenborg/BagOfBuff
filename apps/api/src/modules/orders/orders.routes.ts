@@ -3,6 +3,11 @@ import { Elysia, t } from "elysia";
 import { db } from "../../db";
 import { orderItems, orders, type Order, type OrderItem } from "../../db/schema";
 import { authPlugin, isAdmin } from "../auth/auth.plugin";
+import {
+  REFUND_REASONS,
+  listRefunds,
+  refundOrder,
+} from "./refunds.service";
 
 const Unauthorized = t.Object({ message: t.String() });
 const Forbidden = t.Object({ message: t.String() });
@@ -39,6 +44,16 @@ const OrderItemModel = t.Object({
   quantity: Int,
 });
 
+const RefundModel = t.Object({
+  id: t.String(),
+  amountCents: Int,
+  currency: t.String(),
+  reason: t.String(),
+  note: t.Nullable(t.String()),
+  status: t.String(),
+  createdAt: t.String({ format: "date-time" }),
+});
+
 const OrderDetail = t.Object({
   id: t.String(),
   status: t.String(),
@@ -61,9 +76,21 @@ const OrderDetail = t.Object({
     country: t.Nullable(t.String()),
   }),
   items: t.Array(OrderItemModel),
+  refunds: t.Array(RefundModel),
+  /** Sum of non-failed refunds; equals totalCents when fully refunded. */
+  refundedCents: Int,
   createdAt: t.String({ format: "date-time" }),
   paidAt: t.Nullable(t.String({ format: "date-time" })),
   shippedAt: t.Nullable(t.String({ format: "date-time" })),
+});
+
+const RefundBody = t.Object({
+  /** Omit to refund everything still outstanding. */
+  amountCents: t.Optional(t.Nullable(t.Integer({ minimum: 1 }))),
+  reason: t.Optional(t.Union(REFUND_REASONS.map((r) => t.Literal(r)))),
+  note: t.Optional(t.Nullable(t.String())),
+  /** Return the goods to sellable stock. */
+  restock: t.Optional(t.Boolean()),
 });
 
 const UpdateFulfillmentBody = t.Object({
@@ -76,7 +103,11 @@ function iso(d: Date | null): string | null {
   return d ? d.toISOString() : null;
 }
 
-function serializeDetail(order: Order, items: OrderItem[]) {
+function serializeDetail(
+  order: Order,
+  items: OrderItem[],
+  orderRefunds: { id: string; amountCents: number; currency: string; reason: string; note: string | null; status: string; createdAt: Date }[] = [],
+) {
   return {
     id: order.id,
     status: order.status,
@@ -106,6 +137,18 @@ function serializeDetail(order: Order, items: OrderItem[]) {
       currency: i.currency,
       quantity: i.quantity,
     })),
+    refunds: orderRefunds.map((r) => ({
+      id: r.id,
+      amountCents: r.amountCents,
+      currency: r.currency,
+      reason: r.reason,
+      note: r.note,
+      status: r.status,
+      createdAt: r.createdAt.toISOString(),
+    })),
+    refundedCents: orderRefunds
+      .filter((r) => r.status !== "failed")
+      .reduce((sum, r) => sum + r.amountCents, 0),
     createdAt: order.createdAt.toISOString(),
     paidAt: iso(order.paidAt),
     shippedAt: iso(order.shippedAt),
@@ -182,11 +225,11 @@ export const ordersRoutes = new Elysia({
         .where(eq(orders.id, params.id))
         .limit(1);
       if (!order) return status(404, { message: "Order not found" });
-      const items = await db
-        .select()
-        .from(orderItems)
-        .where(eq(orderItems.orderId, order.id));
-      return serializeDetail(order, items);
+      const [items, orderRefunds] = await Promise.all([
+        db.select().from(orderItems).where(eq(orderItems.orderId, order.id)),
+        listRefunds(order.id),
+      ]);
+      return serializeDetail(order, items, orderRefunds);
     },
     {
       beforeHandle: async ({ user, status }) => {
@@ -202,6 +245,55 @@ export const ordersRoutes = new Elysia({
         404: NotFound,
       },
       detail: { summary: "Get an order with its items (admin)" },
+    },
+  )
+  // --- Refunds -------------------------------------------------------------
+  .post(
+    "/:id/refund",
+    async ({ params, body, user, status }) => {
+      const result = await refundOrder({
+        orderId: params.id,
+        amountCents: body.amountCents ?? null,
+        reason: body.reason,
+        note: body.note ?? null,
+        restock: body.restock ?? false,
+        createdBy: user?.id ?? null,
+      });
+      if (!result.ok) return status(result.status, { message: result.message });
+
+      const [order] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, params.id))
+        .limit(1);
+      const [items, orderRefunds] = await Promise.all([
+        db.select().from(orderItems).where(eq(orderItems.orderId, params.id)),
+        listRefunds(params.id),
+      ]);
+      return serializeDetail(order!, items, orderRefunds);
+    },
+    {
+      beforeHandle: async ({ user, status }) => {
+        if (!user) return status(401, { message: "Unauthorized" });
+        if (!(await isAdmin(user.id)))
+          return status(403, { message: "Forbidden" });
+      },
+      params: t.Object({ id: t.String() }),
+      body: RefundBody,
+      response: {
+        200: OrderDetail,
+        400: NotFound,
+        401: Unauthorized,
+        403: Forbidden,
+        404: NotFound,
+        409: NotFound,
+        503: NotFound,
+      },
+      detail: {
+        summary: "Refund an order, fully or partially (admin)",
+        description:
+          "Refunds through Stripe and records it. Omit `amountCents` to refund everything still outstanding; the remaining balance is computed from recorded refunds, so an order can never be over-refunded.",
+      },
     },
   )
   .patch(
@@ -236,11 +328,11 @@ export const ordersRoutes = new Elysia({
         .set(patch)
         .where(eq(orders.id, params.id))
         .returning();
-      const items = await db
-        .select()
-        .from(orderItems)
-        .where(eq(orderItems.orderId, updated!.id));
-      return serializeDetail(updated!, items);
+      const [items, orderRefunds] = await Promise.all([
+        db.select().from(orderItems).where(eq(orderItems.orderId, updated!.id)),
+        listRefunds(updated!.id),
+      ]);
+      return serializeDetail(updated!, items, orderRefunds);
     },
     {
       beforeHandle: async ({ user, status }) => {

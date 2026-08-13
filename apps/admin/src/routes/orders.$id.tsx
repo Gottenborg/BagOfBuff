@@ -13,6 +13,7 @@ import {
   Text,
 } from "@repo/ui";
 import { AdminShell } from "../components/admin-shell";
+import { RefundPanel } from "../components/refund-panel";
 import { apiErrorMessage } from "../lib/errors";
 import { formatDate, formatPrice } from "../lib/format";
 import { api } from "../lib/api";
@@ -165,6 +166,26 @@ function OrderDetail() {
                   )}
                 </dd>
               </div>
+              {order.refundedCents > 0 && (
+                <>
+                  <div className="flex justify-between text-danger">
+                    <dt>Refunded</dt>
+                    <dd className="tabular-nums">
+                      −{formatPrice(order.refundedCents, order.currency)}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between font-semibold">
+                    <dt>Net</dt>
+                    <dd className="tabular-nums">
+                      {formatPrice(
+                        (order.totalCents ?? order.subtotalCents) -
+                          order.refundedCents,
+                        order.currency,
+                      )}
+                    </dd>
+                  </div>
+                </>
+              )}
             </dl>
           </div>
         </Card>
@@ -276,6 +297,14 @@ function OrderDetail() {
           )}
         </CardContent>
       </Card>
+
+      <RefundPanel
+        order={order}
+        onRefunded={() => {
+          queryClient.invalidateQueries({ queryKey: ["order", id] });
+          queryClient.invalidateQueries({ queryKey: ["orders"] });
+        }}
+      />
     </>
   );
 }
