@@ -7,6 +7,8 @@ import { signOut, useSession } from "../lib/auth";
 const NAV = [
   { to: "/", label: "Catalogue" },
   { to: "/orders", label: "Orders" },
+  { to: "/customers", label: "Customers" },
+  { to: "/subscriptions", label: "Subscriptions" },
   { to: "/plans", label: "Plans" },
 ] as const;
 
