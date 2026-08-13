@@ -6,6 +6,7 @@ import { db } from "./db";
 import { env } from "./lib/env";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { checkoutRoutes } from "./modules/checkout/checkout.routes";
+import { customersRoutes } from "./modules/customers/customers.routes";
 import { ordersRoutes } from "./modules/orders/orders.routes";
 import { productsRoutes } from "./modules/products/products.routes";
 import { shippingRoutes } from "./modules/shipping/shipping.routes";
@@ -97,6 +98,7 @@ export const app = new Elysia()
   .use(shippingRoutes)
   .use(checkoutRoutes)
   .use(ordersRoutes)
+  .use(customersRoutes)
   .use(subscriptionsRoutes);
 
 export type App = typeof app;

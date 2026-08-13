@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Health check */
+        /** Health check (verifies database connectivity) */
         get: operations["getHealth"];
         put?: never;
         post?: never;
@@ -301,6 +301,43 @@ export interface paths {
         patch: operations["patchAdminOrdersByIdFulfillment"];
         trace?: never;
     };
+    "/admin/customers/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List customers, derived from orders (admin)
+         * @description Customers are aggregated by email across orders and subscriptions; checkout is guest-based, so there is no separate customer record. Optional `q` filters by email substring.
+         */
+        get: operations["getAdminCustomers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/customers/{email}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a customer's orders and subscriptions (admin) */
+        get: operations["getAdminCustomersByEmail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/subscription-plans": {
         parameters: {
             query?: never;
@@ -424,7 +461,37 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
-        responses: never;
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        status: "ok";
+                        /** @constant */
+                        database: "up";
+                    };
+                };
+            };
+            /** @description Response for status 503 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        status: "error";
+                        /** @constant */
+                        database: "down";
+                        message: string;
+                    };
+                };
+            };
+        };
     };
     getAuthMe: {
         parameters: {
@@ -1945,6 +2012,147 @@ export interface operations {
                         createdAt: string;
                         paidAt: (string | null) | null;
                         shippedAt: (string | null) | null;
+                    };
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 404 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getAdminCustomers: {
+        parameters: {
+            query?: {
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        email: string;
+                        orderCount: number;
+                        lifetimeValueCents: number;
+                        currency: string;
+                        firstOrderAt: (string | null) | null;
+                        lastOrderAt: (string | null) | null;
+                        activeSubscriptions: number;
+                    }[];
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getAdminCustomersByEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                email: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        email: string;
+                        orderCount: number;
+                        lifetimeValueCents: number;
+                        currency: string;
+                        firstOrderAt: (string | null) | null;
+                        lastOrderAt: (string | null) | null;
+                        shipping: ({
+                            name: (string | null) | null;
+                            line1: (string | null) | null;
+                            line2: (string | null) | null;
+                            city: (string | null) | null;
+                            postalCode: (string | null) | null;
+                            country: (string | null) | null;
+                        } | null) | null;
+                        orders: {
+                            id: string;
+                            status: string;
+                            fulfillmentStatus: string;
+                            origin: string;
+                            totalCents: (number | null) | null;
+                            currency: string;
+                            itemSummary: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                        subscriptions: {
+                            id: string;
+                            status: string;
+                            amountCents: (number | null) | null;
+                            currency: string;
+                            currentPeriodEnd: (string | null) | null;
+                            cancelAtPeriodEnd: boolean;
+                        }[];
                     };
                 };
             };
