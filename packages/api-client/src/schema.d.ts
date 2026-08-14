@@ -2324,6 +2324,15 @@ export interface operations {
                             createdAt: string;
                         }[];
                         refundedCents: number;
+                        events: {
+                            id: string;
+                            type: string;
+                            message: string;
+                            actor: string;
+                            actorEmail: (string | null) | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
                         /** Format: date-time */
                         createdAt: string;
                         paidAt: (string | null) | null;
@@ -2447,6 +2456,15 @@ export interface operations {
                             createdAt: string;
                         }[];
                         refundedCents: number;
+                        events: {
+                            id: string;
+                            type: string;
+                            message: string;
+                            actor: string;
+                            actorEmail: (string | null) | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
                         /** Format: date-time */
                         createdAt: string;
                         paidAt: (string | null) | null;
@@ -2600,6 +2618,15 @@ export interface operations {
                             createdAt: string;
                         }[];
                         refundedCents: number;
+                        events: {
+                            id: string;
+                            type: string;
+                            message: string;
+                            actor: string;
+                            actorEmail: (string | null) | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
                         /** Format: date-time */
                         createdAt: string;
                         paidAt: (string | null) | null;

@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import { eq, sql } from "drizzle-orm";
 import { db } from "../../db";
+import { recordOrderEvent } from "./order-events.service";
 import {
   orderItems,
   orders,
@@ -143,6 +144,13 @@ export async function refundOrder(input: RefundInput): Promise<RefundResult> {
       .update(refunds)
       .set({ status: "failed", note: `${input.note ?? ""} [${message}]`.trim() })
       .where(eq(refunds.id, pending!.id));
+    await recordOrderEvent({
+      orderId: order.id,
+      type: "refund.failed",
+      actor: input.createdBy ?? null,
+      message: `Refund of ${(amountCents / 100).toFixed(2)} ${order.currency} was refused by Stripe: ${message}`,
+      data: { amountCents, currency: order.currency, refundId: pending!.id },
+    });
     return { ok: false, status: 409, message: `Stripe refused the refund: ${message}` };
   }
 
@@ -159,6 +167,27 @@ export async function refundOrder(input: RefundInput): Promise<RefundResult> {
 
   const newTotal = already + amountCents;
   await applyRefundToOrder(order, newTotal, input.restock ?? false);
+
+  const settled = recorded!.status === "succeeded";
+  await recordOrderEvent({
+    orderId: order.id,
+    type: settled ? "refund.settled" : "refund.requested",
+    actor: input.createdBy ?? null,
+    message:
+      `Refunded ${(amountCents / 100).toFixed(2)} ${order.currency}` +
+      ` (${input.reason ?? "requested_by_customer"})` +
+      (settled ? "" : " — pending settlement with Stripe") +
+      (input.restock ? ", stock returned" : ""),
+    data: {
+      amountCents,
+      currency: order.currency,
+      reason: input.reason ?? "requested_by_customer",
+      note: input.note ?? null,
+      restocked: input.restock ?? false,
+      refundedTotalCents: newTotal,
+      stripeRefundId: recorded!.stripeRefundId,
+    },
+  });
 
   return { ok: true, refund: recorded!, refundedTotalCents: newTotal };
 }
@@ -229,8 +258,16 @@ export async function syncRefundFromStripe(
     .limit(1);
 
   if (existing) {
+    // Only a real transition is history; Stripe redelivers the same event.
     if (existing.status !== status) {
       await db.update(refunds).set({ status }).where(eq(refunds.id, existing.id));
+      await recordOrderEvent({
+        orderId: existing.orderId,
+        type: status === "failed" ? "refund.failed" : "refund.settled",
+        actor: "stripe",
+        message: `Refund of ${(existing.amountCents / 100).toFixed(2)} ${existing.currency} ${status === "succeeded" ? "settled" : status}`,
+        data: { from: existing.status, to: status, stripeRefundId: stripeRefund.id },
+      });
     }
     return;
   }
@@ -257,6 +294,14 @@ export async function syncRefundFromStripe(
     reason: "requested_by_customer",
     note: "Issued in Stripe",
     status,
+  });
+
+  await recordOrderEvent({
+    orderId: order.id,
+    type: status === "failed" ? "refund.failed" : "refund.settled",
+    actor: "stripe",
+    message: `Refund of ${(stripeRefund.amount / 100).toFixed(2)} ${(stripeRefund.currency ?? order.currency).toUpperCase()} issued in the Stripe dashboard`,
+    data: { amountCents: stripeRefund.amount, status, stripeRefundId: stripeRefund.id },
   });
 
   const total = await refundedTotal(order.id);

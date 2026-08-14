@@ -1,7 +1,9 @@
 import { nanoid } from "nanoid";
 import {
   boolean,
+  index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -11,7 +13,7 @@ import {
 /**
  * Products catalogue. Physical goods, priced in minor units (cents) to avoid
  * floating-point money. Prices are shown VAT-inclusive in the storefront; the
- * VAT itself is computed at checkout by Stripe Tax based on ship-to country.
+ * VAT itself is computed in-house at checkout (see lib/vat).
  */
 export const products = pgTable("products", {
   id: text("id")
@@ -227,7 +229,7 @@ export type NewShippingRate = typeof shippingRates.$inferInsert;
  *
  * Money is stored in minor units (cents). The pending row carries the amounts
  * we compute (subtotal + shipping); tax and the authoritative total come back
- * from Stripe Tax on the webhook, so `taxCents`/`totalCents` are filled then.
+ * on the webhook, so `taxCents`/`totalCents` are filled then.
  */
 export const orders = pgTable("orders", {
   id: text("id")
@@ -420,3 +422,41 @@ export const subscriptions = pgTable("subscriptions", {
 
 export type Subscription = typeof subscriptions.$inferSelect;
 export type NewSubscription = typeof subscriptions.$inferInsert;
+
+/**
+ * Everything that has happened to an order, in order.
+ *
+ * Orders are changed by several actors — the buyer, Stripe's webhooks, and
+ * whoever is in the back office — and the order row only ever shows the latest
+ * state. When a customer asks why they were refunded twice, or whether anyone
+ * marked their parcel shipped, the current row cannot answer. This can.
+ *
+ * Append-only: rows are never updated or deleted, so the log stays a record of
+ * what happened rather than a second copy of the current state.
+ */
+export const orderEvents = pgTable("order_events", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  orderId: text("order_id")
+    .notNull()
+    .references(() => orders.id, { onDelete: "cascade" }),
+  /** Machine-readable kind, e.g. "fulfillment.changed" (see order-events.ts). */
+  type: text("type").notNull(),
+  /** Human-readable summary, written at the time so it never has to be re-derived. */
+  message: text("message").notNull(),
+  /** Who caused it: an admin's user id, "stripe", "customer", or "system". */
+  actor: text("actor").notNull().default("system"),
+  /** Admin email where known, so the log stays readable after staff changes. */
+  actorEmail: text("actor_email"),
+  /** Structured detail (from/to values, amounts) for anything the message omits. */
+  data: jsonb("data"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+},
+  // The log is only ever read as "this order's events, oldest first".
+  (t) => [index("order_events_order_id_created_at_idx").on(t.orderId, t.createdAt)],
+).enableRLS();
+
+export type OrderEvent = typeof orderEvents.$inferSelect;

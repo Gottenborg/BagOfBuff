@@ -11,6 +11,7 @@ import {
 import { sendOrderConfirmation } from "../../lib/email";
 import { currencyForCountry } from "../../lib/currency";
 import { rateForCountry, vatFromGross } from "../../lib/vat";
+import { recordOrderEvent } from "../orders/order-events.service";
 import { pricesForProducts, resolvePrice } from "../products/prices";
 import { env } from "../../lib/env";
 import { checkoutConfigProblem, getStripe, isLiveMode } from "../../lib/stripe";
@@ -227,6 +228,19 @@ export async function createCheckoutSession(
     .set({ stripeSessionId: session.id, updatedAt: new Date() })
     .where(eq(orders.id, order!.id));
 
+  await recordOrderEvent({
+    orderId: order!.id,
+    type: "order.created",
+    actor: "customer",
+    message: `Checkout started — ${lines.length} line(s), ${option.name} shipping`,
+    data: {
+      currency,
+      subtotalCents,
+      shippingCents: option.priceCents,
+      country,
+    },
+  });
+
   return { ok: true, url: session.url, sessionId: session.id, orderId: order!.id };
 }
 
@@ -356,7 +370,31 @@ export async function fulfillCheckoutSession(
       .where(eq(products.id, item.productId));
   }
 
-  await sendOrderConfirmation(updated as Order, items);
+  await recordOrderEvent({
+    orderId,
+    type: "order.paid",
+    actor: "stripe",
+    message: `Payment received — ${((updated!.totalCents ?? 0) / 100).toFixed(2)} ${updated!.currency}`,
+    data: {
+      totalCents: updated!.totalCents,
+      taxCents: updated!.taxCents,
+      currency: updated!.currency,
+      paymentIntentId: paymentIntentId,
+    },
+  });
+
+  // The confirmation email is the customer's receipt, so whether it went is
+  // part of the order's history — especially when they say they never got one.
+  const emailed = await sendOrderConfirmation(updated as Order, items);
+  await recordOrderEvent({
+    orderId,
+    type: emailed ? "email.sent" : "email.failed",
+    actor: "system",
+    message: emailed
+      ? `Order confirmation sent to ${updated!.email ?? "the customer"}`
+      : "Order confirmation was not sent (email is not configured, or the provider rejected it)",
+    data: { to: updated!.email },
+  });
 }
 
 /** Marks a pending order canceled when its checkout session expires. */
@@ -365,8 +403,20 @@ export async function expireCheckoutSession(
 ): Promise<void> {
   const orderId = session.metadata?.orderId;
   if (!orderId) return;
-  await db
+  const canceled = await db
     .update(orders)
     .set({ status: "canceled", updatedAt: new Date() })
-    .where(and(eq(orders.id, orderId), eq(orders.status, "pending")));
+    .where(and(eq(orders.id, orderId), eq(orders.status, "pending")))
+    .returning({ id: orders.id });
+
+  // Only log a real transition: Stripe can redeliver, and an order that was
+  // already canceled hasn't expired a second time.
+  if (canceled.length > 0) {
+    await recordOrderEvent({
+      orderId,
+      type: "order.expired",
+      actor: "stripe",
+      message: "Checkout session expired — order canceled",
+    });
+  }
 }

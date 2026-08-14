@@ -13,6 +13,7 @@ import {
   Text,
 } from "@repo/ui";
 import { AdminShell } from "../components/admin-shell";
+import { OrderHistory } from "../components/order-history";
 import { RefundPanel } from "../components/refund-panel";
 import { apiErrorMessage } from "../lib/errors";
 import { formatDate, formatPrice } from "../lib/format";
@@ -305,6 +306,8 @@ function OrderDetail() {
           queryClient.invalidateQueries({ queryKey: ["orders"] });
         }}
       />
+
+      <OrderHistory events={order.events} />
     </>
   );
 }
