@@ -383,6 +383,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/orders/{id}/invoice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue the invoice for an order (admin)
+         * @description Idempotent: an order has at most one invoice, and pressing this again returns the existing one rather than burning a number. Numbers are sequential and gapless, as Danish bookkeeping law requires.
+         */
+        post: operations["postAdminOrdersByIdInvoice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/orders/{id}/cancel": {
         parameters: {
             query?: never;
@@ -2609,6 +2629,26 @@ export interface operations {
                             /** Format: date-time */
                             createdAt: string;
                         }[];
+                        invoice: ({
+                            number: string;
+                            /** Format: date-time */
+                            issuedAt: string;
+                            seller: {
+                                name: string;
+                                address: string;
+                                cvr: string;
+                                email: string;
+                                vatNumber: string;
+                            };
+                        } | null) | null;
+                        seller: {
+                            name: string;
+                            address: string;
+                            cvr: string;
+                            email: string;
+                            vatNumber: string;
+                        };
+                        sellerConfigured: boolean;
                         /** Format: date-time */
                         createdAt: string;
                         paidAt: (string | null) | null;
@@ -2741,6 +2781,26 @@ export interface operations {
                             /** Format: date-time */
                             createdAt: string;
                         }[];
+                        invoice: ({
+                            number: string;
+                            /** Format: date-time */
+                            issuedAt: string;
+                            seller: {
+                                name: string;
+                                address: string;
+                                cvr: string;
+                                email: string;
+                                vatNumber: string;
+                            };
+                        } | null) | null;
+                        seller: {
+                            name: string;
+                            address: string;
+                            cvr: string;
+                            email: string;
+                            vatNumber: string;
+                        };
+                        sellerConfigured: boolean;
                         /** Format: date-time */
                         createdAt: string;
                         paidAt: (string | null) | null;
@@ -2756,6 +2816,94 @@ export interface operations {
                 content: {
                     "application/json": {
                         message: string;
+                    };
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 404 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 409 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 503 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    postAdminOrdersByIdInvoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        number: string;
+                        /** Format: date-time */
+                        issuedAt: string;
+                        seller: {
+                            name: string;
+                            address: string;
+                            cvr: string;
+                            email: string;
+                            vatNumber: string;
+                        };
                     };
                 };
             };
@@ -3113,6 +3261,26 @@ export interface operations {
                             /** Format: date-time */
                             createdAt: string;
                         }[];
+                        invoice: ({
+                            number: string;
+                            /** Format: date-time */
+                            issuedAt: string;
+                            seller: {
+                                name: string;
+                                address: string;
+                                cvr: string;
+                                email: string;
+                                vatNumber: string;
+                            };
+                        } | null) | null;
+                        seller: {
+                            name: string;
+                            address: string;
+                            cvr: string;
+                            email: string;
+                            vatNumber: string;
+                        };
+                        sellerConfigured: boolean;
                         /** Format: date-time */
                         createdAt: string;
                         paidAt: (string | null) | null;

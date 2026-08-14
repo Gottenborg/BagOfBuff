@@ -44,4 +44,13 @@ export const env = {
   RESEND_API_KEY: process.env.RESEND_API_KEY ?? "",
   // From address for transactional email. Must be a verified Resend sender.
   ORDER_FROM_EMAIL: process.env.ORDER_FROM_EMAIL ?? "Bag of Buff <orders@bagofbuff.com>",
+
+  // --- Company identity (invoices) ----------------------------------------
+  // Printed on every invoice. A Danish invoice without a CVR number is not
+  // valid, so invoice issuing refuses until these are set rather than emitting
+  // a document that looks complete and isn't.
+  COMPANY_NAME: process.env.COMPANY_NAME ?? "",
+  COMPANY_ADDRESS: process.env.COMPANY_ADDRESS ?? "",
+  COMPANY_CVR: process.env.COMPANY_CVR ?? "",
+  COMPANY_EMAIL: process.env.COMPANY_EMAIL ?? "hello@bagofbuff.com",
 } as const;

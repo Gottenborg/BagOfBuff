@@ -26,6 +26,7 @@ export const ORDER_EVENT_TYPES = [
   "refund.requested",
   "refund.settled",
   "refund.failed",
+  "invoice.issued",
   "email.sent",
   "email.failed",
 ] as const;

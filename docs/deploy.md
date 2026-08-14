@@ -95,6 +95,10 @@ Certificates issue automatically once DNS resolves (usually minutes). Check with
   up-to-date list (the event list grows as features land, and a missing event
   fails silently). Verify a key before deploying with
   `cd apps/api && STRIPE_SECRET_KEY="sk_…" bun run stripe:check`.
+- **Company details** → set `COMPANY_NAME`, `COMPANY_ADDRESS` and `COMPANY_CVR`
+  in `fly.api.toml` (they are not secret). Invoice issuing refuses until they
+  are set: a Danish invoice without a CVR number is not valid, and a document
+  that looks complete but isn't is worse than one that visibly needs filling in.
 - **Resend** → verify the `bagofbuff.com` sending domain (add its DKIM records to
   DNS) so order/subscription emails deliver.
 - **CORS** → `fly.api.toml` already allows the three production origins; if you

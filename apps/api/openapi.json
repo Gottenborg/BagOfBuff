@@ -6171,6 +6171,9 @@
                     "refunds",
                     "refundedCents",
                     "events",
+                    "invoice",
+                    "seller",
+                    "sellerConfigured",
                     "createdAt",
                     "paidAt",
                     "shippedAt"
@@ -6465,6 +6468,88 @@
                           }
                         }
                       }
+                    },
+                    "invoice": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "number",
+                            "issuedAt",
+                            "seller"
+                          ],
+                          "properties": {
+                            "number": {
+                              "type": "string"
+                            },
+                            "issuedAt": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "seller": {
+                              "type": "object",
+                              "required": [
+                                "name",
+                                "address",
+                                "cvr",
+                                "email",
+                                "vatNumber"
+                              ],
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "address": {
+                                  "type": "string"
+                                },
+                                "cvr": {
+                                  "type": "string"
+                                },
+                                "email": {
+                                  "type": "string"
+                                },
+                                "vatNumber": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "seller": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "address",
+                        "cvr",
+                        "email",
+                        "vatNumber"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": "string"
+                        },
+                        "cvr": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "vatNumber": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "sellerConfigured": {
+                      "type": "boolean"
                     },
                     "createdAt": {
                       "format": "date-time",
@@ -6757,6 +6842,9 @@
                     "refunds",
                     "refundedCents",
                     "events",
+                    "invoice",
+                    "seller",
+                    "sellerConfigured",
                     "createdAt",
                     "paidAt",
                     "shippedAt"
@@ -7052,6 +7140,88 @@
                         }
                       }
                     },
+                    "invoice": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "number",
+                            "issuedAt",
+                            "seller"
+                          ],
+                          "properties": {
+                            "number": {
+                              "type": "string"
+                            },
+                            "issuedAt": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "seller": {
+                              "type": "object",
+                              "required": [
+                                "name",
+                                "address",
+                                "cvr",
+                                "email",
+                                "vatNumber"
+                              ],
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "address": {
+                                  "type": "string"
+                                },
+                                "cvr": {
+                                  "type": "string"
+                                },
+                                "email": {
+                                  "type": "string"
+                                },
+                                "vatNumber": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "seller": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "address",
+                        "cvr",
+                        "email",
+                        "vatNumber"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": "string"
+                        },
+                        "cvr": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "vatNumber": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "sellerConfigured": {
+                      "type": "boolean"
+                    },
                     "createdAt": {
                       "format": "date-time",
                       "type": "string"
@@ -7195,6 +7365,169 @@
           }
         },
         "operationId": "postAdminOrdersByIdRefund"
+      }
+    },
+    "/admin/orders/{id}/invoice": {
+      "post": {
+        "tags": [
+          "Orders (admin)"
+        ],
+        "summary": "Issue the invoice for an order (admin)",
+        "description": "Idempotent: an order has at most one invoice, and pressing this again returns the existing one rather than burning a number. Numbers are sequential and gapless, as Danish bookkeeping law requires.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "number",
+                    "issuedAt",
+                    "seller"
+                  ],
+                  "properties": {
+                    "number": {
+                      "type": "string"
+                    },
+                    "issuedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "seller": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "address",
+                        "cvr",
+                        "email",
+                        "vatNumber"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": "string"
+                        },
+                        "cvr": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "vatNumber": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Response for status 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Response for status 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Response for status 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Response for status 503",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postAdminOrdersByIdInvoice"
       }
     },
     "/admin/orders/{id}/cancel": {
@@ -7788,6 +8121,9 @@
                     "refunds",
                     "refundedCents",
                     "events",
+                    "invoice",
+                    "seller",
+                    "sellerConfigured",
                     "createdAt",
                     "paidAt",
                     "shippedAt"
@@ -8082,6 +8418,88 @@
                           }
                         }
                       }
+                    },
+                    "invoice": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "number",
+                            "issuedAt",
+                            "seller"
+                          ],
+                          "properties": {
+                            "number": {
+                              "type": "string"
+                            },
+                            "issuedAt": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "seller": {
+                              "type": "object",
+                              "required": [
+                                "name",
+                                "address",
+                                "cvr",
+                                "email",
+                                "vatNumber"
+                              ],
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "address": {
+                                  "type": "string"
+                                },
+                                "cvr": {
+                                  "type": "string"
+                                },
+                                "email": {
+                                  "type": "string"
+                                },
+                                "vatNumber": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "seller": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "address",
+                        "cvr",
+                        "email",
+                        "vatNumber"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": "string"
+                        },
+                        "cvr": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "vatNumber": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "sellerConfigured": {
+                      "type": "boolean"
                     },
                     "createdAt": {
                       "format": "date-time",
