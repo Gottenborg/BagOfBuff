@@ -12,6 +12,7 @@ import {
 } from "../../db/schema";
 import { env } from "../../lib/env";
 import { getStripe } from "../../lib/stripe";
+import { rateForCountry, vatFromGross } from "../../lib/vat";
 import { sendPortalLink } from "../../lib/email";
 
 export type PlanInterval = "week" | "month";
@@ -107,7 +108,8 @@ export async function createSubscriptionCheckout(input: {
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: plan.stripePriceId, quantity: 1 }],
-    automatic_tax: { enabled: true },
+    // VAT calculated in-house, as for one-off checkout (see lib/vat).
+    automatic_tax: { enabled: false },
     shipping_address_collection: { allowed_countries: allShippableCountries() },
     ...(input.email ? { customer_email: input.email } : {}),
     metadata: { planId: plan.id, productId: plan.productId },
@@ -263,7 +265,7 @@ export async function handleInvoicePaid(
       subtotalCents: amount,
       shippingCents: 0,
       totalCents: amount,
-      taxCents: invoice.total_taxes?.[0]?.amount ?? null,
+      taxCents: vatFromGross(amount, rateForCountry(sub.shipCountry)),
       shipName: sub.shipName,
       shipLine1: sub.shipLine1,
       shipLine2: sub.shipLine2,

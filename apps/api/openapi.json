@@ -7139,6 +7139,96 @@
         "operationId": "patchAdminOrdersByIdFulfillment"
       }
     },
+    "/admin/tax/oss": {
+      "get": {
+        "tags": [
+          "Tax (admin)"
+        ],
+        "summary": "EU OSS threshold position for the current year (admin)",
+        "description": "Cross-border EU B2C sales so far this year against the €10,000 threshold. Below it we charge Danish VAT on all EU sales; above it each sale must carry the destination country's rate.",
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "year",
+                    "crossBorderEurCents",
+                    "thresholdEurCents",
+                    "ratio",
+                    "exceeded",
+                    "approaching",
+                    "vatRate"
+                  ],
+                  "properties": {
+                    "year": {
+                      "type": "number"
+                    },
+                    "crossBorderEurCents": {
+                      "type": "number"
+                    },
+                    "thresholdEurCents": {
+                      "type": "number"
+                    },
+                    "ratio": {
+                      "type": "number"
+                    },
+                    "exceeded": {
+                      "type": "boolean"
+                    },
+                    "approaching": {
+                      "type": "boolean"
+                    },
+                    "vatRate": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Response for status 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getAdminTaxOss"
+      }
+    },
     "/admin/customers/": {
       "get": {
         "tags": [

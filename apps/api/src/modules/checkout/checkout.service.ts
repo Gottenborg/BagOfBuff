@@ -10,6 +10,7 @@ import {
 } from "../../db/schema";
 import { sendOrderConfirmation } from "../../lib/email";
 import { currencyForCountry } from "../../lib/currency";
+import { rateForCountry, vatFromGross } from "../../lib/vat";
 import { pricesForProducts, resolvePrice } from "../products/prices";
 import { env } from "../../lib/env";
 import { checkoutConfigProblem, getStripe, isLiveMode } from "../../lib/stripe";
@@ -21,7 +22,13 @@ import {
   type ShippingOption,
 } from "../shipping/shipping.service";
 
-/** Stripe tax codes: general tangible goods and shipping. */
+/**
+ * Stripe tax codes: general tangible goods and shipping.
+ *
+ * Kept on the line items even though `automatic_tax` is off, so that enabling
+ * Stripe Tax later (see lib/vat: at the EU OSS threshold) is a one-flag change
+ * rather than a re-classification of the catalogue.
+ */
 const TAX_CODE_GOODS = "txcd_99999999";
 const TAX_CODE_SHIPPING = "txcd_92010001";
 
@@ -193,8 +200,12 @@ export async function createCheckoutSession(
       },
     })),
     shipping_options: [buildShippingOption(option, currency)],
-    automatic_tax: { enabled: true },
-    // Stripe uses the collected shipping address as the tax destination.
+    // VAT is calculated in-house (lib/vat) rather than by Stripe Tax: under the
+    // EU OSS threshold every EU sale carries Danish VAT, so there is nothing to
+    // look up, and prices are already VAT-inclusive. Revisit at the threshold —
+    // `ossStatus` reports the position.
+    automatic_tax: { enabled: false },
+    // The shipping address is still what decides the VAT treatment.
     shipping_address_collection: {
       allowed_countries: allowedCountries(zone.countries),
     },
@@ -305,7 +316,13 @@ export async function fulfillCheckoutSession(
       status: "paid",
       stripePaymentIntentId: paymentIntentId,
       email: session.customer_details?.email ?? existing.email,
-      taxCents: session.total_details?.amount_tax ?? null,
+      // The VAT contained in what was actually charged, at the rate for where
+      // it shipped. Derived from the final total so any Stripe-side adjustment
+      // (discount, shipping change) is reflected rather than assumed.
+      taxCents: vatFromGross(
+        session.amount_total ?? existing.totalCents ?? 0,
+        rateForCountry(addr?.country ?? existing.shipCountry),
+      ),
       totalCents: session.amount_total ?? existing.totalCents,
       shippingCents:
         session.total_details?.amount_shipping ?? existing.shippingCents,
