@@ -1,13 +1,20 @@
 import { and, count, desc, eq, ilike, inArray, ne, or } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { db } from "../../db";
-import { orderItems, orders, type Order, type OrderItem } from "../../db/schema";
+import {
+  orderItems,
+  orders,
+  type Order,
+  type OrderEvent,
+  type OrderItem,
+} from "../../db/schema";
 import { authPlugin, isAdmin } from "../auth/auth.plugin";
 import {
   REFUND_REASONS,
   listRefunds,
   refundOrder,
 } from "./refunds.service";
+import { listOrderEvents, recordOrderEvent } from "./order-events.service";
 
 const Unauthorized = t.Object({ message: t.String() });
 const Forbidden = t.Object({ message: t.String() });
@@ -54,6 +61,16 @@ const RefundModel = t.Object({
   createdAt: t.String({ format: "date-time" }),
 });
 
+const OrderEventModel = t.Object({
+  id: t.String(),
+  type: t.String(),
+  message: t.String(),
+  /** Admin user id, or "stripe" / "customer" / "system". */
+  actor: t.String(),
+  actorEmail: t.Nullable(t.String()),
+  createdAt: t.String({ format: "date-time" }),
+});
+
 const OrderDetail = t.Object({
   id: t.String(),
   status: t.String(),
@@ -79,6 +96,8 @@ const OrderDetail = t.Object({
   refunds: t.Array(RefundModel),
   /** Sum of non-failed refunds; equals totalCents when fully refunded. */
   refundedCents: Int,
+  /** Append-only history, oldest first. */
+  events: t.Array(OrderEventModel),
   createdAt: t.String({ format: "date-time" }),
   paidAt: t.Nullable(t.String({ format: "date-time" })),
   shippedAt: t.Nullable(t.String({ format: "date-time" })),
@@ -107,6 +126,7 @@ function serializeDetail(
   order: Order,
   items: OrderItem[],
   orderRefunds: { id: string; amountCents: number; currency: string; reason: string; note: string | null; status: string; createdAt: Date }[] = [],
+  events: OrderEvent[] = [],
 ) {
   return {
     id: order.id,
@@ -149,6 +169,14 @@ function serializeDetail(
     refundedCents: orderRefunds
       .filter((r) => r.status !== "failed")
       .reduce((sum, r) => sum + r.amountCents, 0),
+    events: events.map((e) => ({
+      id: e.id,
+      type: e.type,
+      message: e.message,
+      actor: e.actor,
+      actorEmail: e.actorEmail,
+      createdAt: e.createdAt.toISOString(),
+    })),
     createdAt: order.createdAt.toISOString(),
     paidAt: iso(order.paidAt),
     shippedAt: iso(order.shippedAt),
@@ -268,11 +296,12 @@ export const ordersRoutes = new Elysia({
         .where(eq(orders.id, params.id))
         .limit(1);
       if (!order) return status(404, { message: "Order not found" });
-      const [items, orderRefunds] = await Promise.all([
+      const [items, orderRefunds, events] = await Promise.all([
         db.select().from(orderItems).where(eq(orderItems.orderId, order.id)),
         listRefunds(order.id),
+        listOrderEvents(order.id),
       ]);
-      return serializeDetail(order, items, orderRefunds);
+      return serializeDetail(order, items, orderRefunds, events);
     },
     {
       beforeHandle: async ({ user, status }) => {
@@ -309,11 +338,12 @@ export const ordersRoutes = new Elysia({
         .from(orders)
         .where(eq(orders.id, params.id))
         .limit(1);
-      const [items, orderRefunds] = await Promise.all([
+      const [items, orderRefunds, events] = await Promise.all([
         db.select().from(orderItems).where(eq(orderItems.orderId, params.id)),
         listRefunds(params.id),
+        listOrderEvents(params.id),
       ]);
-      return serializeDetail(order!, items, orderRefunds);
+      return serializeDetail(order!, items, orderRefunds, events);
     },
     {
       beforeHandle: async ({ user, status }) => {
@@ -341,7 +371,7 @@ export const ordersRoutes = new Elysia({
   )
   .patch(
     "/:id/fulfillment",
-    async ({ params, body, status }) => {
+    async ({ params, body, user, status }) => {
       const [current] = await db
         .select()
         .from(orders)
@@ -371,11 +401,49 @@ export const ordersRoutes = new Elysia({
         .set(patch)
         .where(eq(orders.id, params.id))
         .returning();
-      const [items, orderRefunds] = await Promise.all([
+
+      // Two distinct changes can arrive in one request; log only what moved, so
+      // the history doesn't fill with entries that record nothing happening.
+      if (nextStatus !== current.fulfillmentStatus) {
+        await recordOrderEvent({
+          orderId: params.id,
+          type: "fulfillment.changed",
+          actor: user?.id ?? null,
+          message: `Fulfillment marked ${nextStatus} (was ${current.fulfillmentStatus})`,
+          data: { from: current.fulfillmentStatus, to: nextStatus },
+        });
+      }
+      const carrierChanged =
+        body.trackingCarrier !== undefined &&
+        body.trackingCarrier !== current.trackingCarrier;
+      const numberChanged =
+        body.trackingNumber !== undefined &&
+        body.trackingNumber !== current.trackingNumber;
+      if (carrierChanged || numberChanged) {
+        const carrier = updated!.trackingCarrier;
+        const number = updated!.trackingNumber;
+        await recordOrderEvent({
+          orderId: params.id,
+          type: "tracking.changed",
+          actor: user?.id ?? null,
+          message: number
+            ? `Tracking set to ${number}${carrier ? ` (${carrier})` : ""}`
+            : "Tracking cleared",
+          data: {
+            carrier,
+            number,
+            previousCarrier: current.trackingCarrier,
+            previousNumber: current.trackingNumber,
+          },
+        });
+      }
+
+      const [items, orderRefunds, events] = await Promise.all([
         db.select().from(orderItems).where(eq(orderItems.orderId, updated!.id)),
         listRefunds(updated!.id),
+        listOrderEvents(updated!.id),
       ]);
-      return serializeDetail(updated!, items, orderRefunds);
+      return serializeDetail(updated!, items, orderRefunds, events);
     },
     {
       beforeHandle: async ({ user, status }) => {

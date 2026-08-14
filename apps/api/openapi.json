@@ -5769,6 +5769,7 @@
                     "items",
                     "refunds",
                     "refundedCents",
+                    "events",
                     "createdAt",
                     "paidAt",
                     "shippedAt"
@@ -6020,6 +6021,49 @@
                     },
                     "refundedCents": {
                       "type": "number"
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "type",
+                          "message",
+                          "actor",
+                          "actorEmail",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "actor": {
+                            "type": "string"
+                          },
+                          "actorEmail": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "createdAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        }
+                      }
                     },
                     "createdAt": {
                       "format": "date-time",
@@ -6311,6 +6355,7 @@
                     "items",
                     "refunds",
                     "refundedCents",
+                    "events",
                     "createdAt",
                     "paidAt",
                     "shippedAt"
@@ -6562,6 +6607,49 @@
                     },
                     "refundedCents": {
                       "type": "number"
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "type",
+                          "message",
+                          "actor",
+                          "actorEmail",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "actor": {
+                            "type": "string"
+                          },
+                          "actorEmail": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "createdAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        }
+                      }
                     },
                     "createdAt": {
                       "format": "date-time",
@@ -6864,6 +6952,7 @@
                     "items",
                     "refunds",
                     "refundedCents",
+                    "events",
                     "createdAt",
                     "paidAt",
                     "shippedAt"
@@ -7115,6 +7204,49 @@
                     },
                     "refundedCents": {
                       "type": "number"
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "type",
+                          "message",
+                          "actor",
+                          "actorEmail",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "actor": {
+                            "type": "string"
+                          },
+                          "actorEmail": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "createdAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        }
+                      }
                     },
                     "createdAt": {
                       "format": "date-time",

@@ -85,6 +85,13 @@
       "when": 1786627710923,
       "tag": "0011_magical_nighthawk",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1786704522134,
+      "tag": "0012_lovely_nomad",
+      "breakpoints": true
     }
   ]
 }
