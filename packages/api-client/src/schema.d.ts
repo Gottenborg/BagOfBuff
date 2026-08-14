@@ -362,6 +362,26 @@ export interface paths {
         patch: operations["patchAdminOrdersByIdFulfillment"];
         trace?: never;
     };
+    "/admin/tax/oss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * EU OSS threshold position for the current year (admin)
+         * @description Cross-border EU B2C sales so far this year against the €10,000 threshold. Below it we charge Danish VAT on all EU sales; above it each sale must carry the destination country's rate.
+         */
+        get: operations["getAdminTaxOss"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/customers/": {
         parameters: {
             query?: never;
@@ -2603,6 +2623,56 @@ export interface operations {
             };
             /** @description Response for status 404 */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getAdminTaxOss: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        year: number;
+                        crossBorderEurCents: number;
+                        thresholdEurCents: number;
+                        ratio: number;
+                        exceeded: boolean;
+                        approaching: boolean;
+                        vatRate: number;
+                    };
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

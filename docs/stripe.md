@@ -1,6 +1,7 @@
 # Stripe setup
 
-Stripe handles payment, VAT calculation, subscriptions and refunds. The API
+Stripe handles payment, subscriptions and refunds (VAT is calculated in-house —
+see section 3). The API
 boots fine without it — every Stripe-backed route returns 503 — so the shop can
 run unpaid while this is configured.
 
@@ -30,9 +31,8 @@ STRIPE_SECRET_KEY="sk_test_…" bun run stripe:check
 ```
 
 This calls Stripe for real and checks the things that fail silently: whether the
-key works, whether Stripe Tax has a registration, and whether the webhook
-endpoint is subscribed to the events the code actually handles. It never prints
-the key.
+key works, and whether the webhook endpoint is subscribed to the events the code
+actually handles. It never prints the key.
 
 Then add it as a repository secret: **Settings → Secrets and variables →
 Actions → New repository secret**, named `STRIPE_SECRET_KEY`.
@@ -64,18 +64,20 @@ one. Swapping keys without swapping this is the usual going-live mistake.
 The API scales to zero, so the first webhook after an idle period cold-starts the
 machine (1–2 s). Stripe's retry policy covers that.
 
-## 3. Stripe Tax
+## 3. Stripe Tax — not used
 
-Storefront prices are VAT-inclusive and Checkout is created with
-`automatic_tax: { enabled: true }`, which splits the VAT out by ship-to country.
+VAT is calculated **in-house** (`apps/api/src/lib/vat.ts`), so there is nothing
+to enable here and no per-transaction tax fee.
 
-Stripe → **Tax** → complete the origin address, then **Registrations** → add
-**Denmark**. Without a registration Stripe calculates **0 % VAT** and you
-under-charge on every sale while everything looks like it worked. Add further
-countries as you cross the EU OSS threshold (€10,000/year of cross-border B2C
-sales).
+The reason: a Danish seller charges **Danish VAT (25%) on every EU sale** until
+cross-border B2C sales pass **€10,000** in a calendar year. One rate, no lookup
+table — Stripe Tax would be solving a problem that doesn't exist yet.
 
-`bun run stripe:check` fails on a live key with no registrations, for this reason.
+Revisit at the threshold. `GET /admin/tax/oss` reports the position and the back
+office warns from 80%. Switching over then means adding the Denmark (and other)
+registrations in Stripe → Tax and flipping `automatic_tax` back to `enabled:
+true` in `checkout.service` and `subscriptions.service` — the line items still
+carry their tax codes, so nothing else changes.
 
 ## 4. Going live
 

@@ -6,9 +6,8 @@
  *
  * Checkout fails in ways that are invisible until a customer hits them: a
  * webhook endpoint that isn't subscribed to `checkout.session.completed` looks
- * perfectly healthy while every paid order silently stays `pending`, and Stripe
- * Tax without a registration charges 0 % VAT on real sales. This makes a real
- * API call for each of those and reports what is missing.
+ * perfectly healthy while every paid order silently stays `pending`. This makes
+ * a real API call for each check and reports what is missing.
  *
  * Exits 0 when checkout would work, 1 otherwise. Never prints the key.
  */
@@ -115,37 +114,23 @@ async function main(): Promise<number> {
     return 1;
   }
 
-  // 2. Stripe Tax: enabled without a registration silently charges no VAT.
+  // 2. Stripe Tax is deliberately unused — VAT is calculated in-house (lib/vat)
+  // because a Danish seller charges Danish VAT on every EU sale below the OSS
+  // threshold. Report any registrations found, but never fail on their absence:
+  // that is the expected state, not a misconfiguration.
   try {
     const registrations = await stripe.tax.registrations.list({
       status: "active",
       limit: 100,
     });
-    if (registrations.data.length === 0) {
-      console.log("⚠️  Stripe Tax has no active registrations.");
-      console.log(
-        "   Checkout requests automatic_tax, so without a Danish registration",
-      );
-      console.log("   VAT is calculated as 0 — under-charging on every EU sale.");
-      console.log("   Fix: Stripe → Tax → Registrations → add Denmark (and any");
-      console.log("   other country where you cross the EU OSS threshold).");
-      if (live) failed = true;
-    } else {
-      const where = registrations.data
-        .map((r) => r.country)
-        .sort()
-        .join(", ");
-      console.log(`✓ Stripe Tax active in: ${where}`);
-      if (!registrations.data.some((r) => r.country === "DK")) {
-        console.log("  ⚠️  Denmark (DK) is not among them, and the shop is DK-based.");
-      }
+    if (registrations.data.length > 0) {
+      const where = registrations.data.map((r) => r.country).sort().join(", ");
+      console.log(`note: Stripe Tax registrations exist (${where}), but`);
+      console.log("      automatic_tax is off — VAT comes from lib/vat instead.");
+      console.log("");
     }
-    console.log("");
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    // A restricted key may simply not carry the tax permission.
-    console.log(`⚠️  Could not read Tax registrations: ${message}`);
-    console.log("   Verify manually at Stripe → Tax → Registrations.\n");
+  } catch {
+    // Restricted keys may lack the tax permission; nothing depends on this.
   }
 
   // 3. Webhook endpoints: the quiet failure mode.

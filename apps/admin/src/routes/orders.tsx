@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { Badge, Button, Card, Loading, Text } from "@repo/ui";
 import { AdminShell } from "../components/admin-shell";
+import { OssNotice } from "../components/oss-notice";
 import { formatDate, formatPrice } from "../lib/format";
 import { api } from "../lib/api";
 
@@ -11,6 +12,7 @@ export const Route = createFileRoute("/orders")({ component: OrdersRoute });
 function OrdersRoute() {
   return (
     <AdminShell subtitle="Orders & fulfillment.">
+      <OssNotice />
       <OrdersList />
     </AdminShell>
   );
