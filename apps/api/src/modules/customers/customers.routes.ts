@@ -3,6 +3,7 @@ import { Elysia, t } from "elysia";
 import { db } from "../../db";
 import { orderItems, orders, subscriptions } from "../../db/schema";
 import { authPlugin, isAdmin } from "../auth/auth.plugin";
+import { eraseCustomer, exportCustomerData } from "./gdpr.service";
 
 const Unauthorized = t.Object({ message: t.String() });
 const Forbidden = t.Object({ message: t.String() });
@@ -255,5 +256,71 @@ export const customersRoutes = new Elysia({
         404: NotFound,
       },
       detail: { summary: "Get a customer's orders and subscriptions (admin)" },
+    },
+  )
+  // --- Data-subject rights (GDPR) ------------------------------------------
+  .get(
+    "/:email/export",
+    async ({ params, status }) => {
+      const data = await exportCustomerData(decodeURIComponent(params.email));
+      if (data.orders.length === 0 && data.subscriptions.length === 0) {
+        return status(404, { message: "No data found for that email" });
+      }
+      return data;
+    },
+    {
+      beforeHandle: async ({ user, status }) => {
+        if (!user) return status(401, { message: "Unauthorized" });
+        if (!(await isAdmin(user.id)))
+          return status(403, { message: "Forbidden" });
+      },
+      params: t.Object({ email: t.String() }),
+      response: {
+        // Deliberately loose: this is a dump of everything held, and pinning a
+        // schema here would silently drop fields added elsewhere — which is
+        // exactly the failure mode a subject-access request must not have.
+        200: t.Any(),
+        401: Unauthorized,
+        403: Forbidden,
+        404: NotFound,
+      },
+      detail: {
+        summary: "Export everything held about a customer (admin)",
+        description:
+          "GDPR arts. 15 and 20. Machine-readable JSON, matched case-insensitively on email.",
+      },
+    },
+  )
+  .post(
+    "/:email/erase",
+    async ({ params, user, status }) => {
+      const result = await eraseCustomer({
+        email: decodeURIComponent(params.email),
+        actor: user?.id ?? null,
+      });
+      if (!result.ok) return status(result.status, { message: result.message });
+      return {
+        message: `Personal data erased on ${result.ordersAnonymized} order(s) and ${result.subscriptionsAnonymized} subscription(s). Financial records retained.`,
+      };
+    },
+    {
+      beforeHandle: async ({ user, status }) => {
+        if (!user) return status(401, { message: "Unauthorized" });
+        if (!(await isAdmin(user.id)))
+          return status(403, { message: "Forbidden" });
+      },
+      params: t.Object({ email: t.String() }),
+      response: {
+        200: t.Object({ message: t.String() }),
+        401: Unauthorized,
+        403: Forbidden,
+        404: NotFound,
+        409: NotFound,
+      },
+      detail: {
+        summary: "Erase a customer's personal data (admin)",
+        description:
+          "GDPR art. 17, implemented as anonymisation: names, addresses and emails are overwritten while amounts, VAT and invoice numbers are retained, because bookkeeping law requires the financial record for five years (art. 17(3)(b)).",
+      },
     },
   );

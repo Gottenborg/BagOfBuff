@@ -59,7 +59,17 @@ All processors are EU-region:
   (cart, checkout). Analytics are **cookieless (Plausible)** and additionally
   gated behind an explicit opt-in banner; declining removes no functionality.
 - **Data-subject rights** (access, rectification, erasure, portability,
-  objection) are described in `/legal/privacy`.
+  objection) are described in `/legal/privacy` **and implemented in the back
+  office** on the customer page:
+  - *Export* (arts. 15, 20) downloads machine-readable JSON of orders, items,
+    refunds, invoices, subscriptions and order history.
+  - *Erase* (art. 17) **anonymises rather than deletes**: names, addresses and
+    emails are overwritten, while amounts, VAT, dates, ship-to country and
+    invoice numbers are retained — bookkeeping law requires the financial
+    record for five years, which art. 17(3)(b) exempts from erasure. Blocked
+    while a subscription is active, since that is an ongoing contract.
+  - Both match email case-insensitively, so `Buyer@` and `buyer@` are one
+    person rather than half an answer to a legal request.
 - Complete a **Record of Processing Activities (RoPA)** and sign **Data
   Processing Agreements** with Supabase, Resend, Stripe, and the host.
 
