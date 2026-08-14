@@ -1,4 +1,4 @@
-import { count, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, ne, or } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { db } from "../../db";
 import { orderItems, orders, type Order, type OrderItem } from "../../db/schema";
@@ -165,14 +165,42 @@ export const ordersRoutes = new Elysia({
     async ({ query }) => {
       // Default to actionable orders (paid); `status=all` includes pending
       // (abandoned) and canceled sessions.
-      const rows =
-        query.status === "all"
-          ? await db.select().from(orders).orderBy(desc(orders.createdAt))
-          : await db
-              .select()
-              .from(orders)
-              .where(ne(orders.status, "pending"))
-              .orderBy(desc(orders.createdAt));
+      const statusFilter =
+        query.status === "all" ? undefined : ne(orders.status, "pending");
+
+      // Search by whatever the person in front of the screen actually has: an
+      // email from the customer, or an order reference from a support thread.
+      const term = query.q?.trim();
+      const search = term
+        ? or(
+            ilike(orders.email, `%${term}%`),
+            ilike(orders.id, `%${term}%`),
+            ilike(orders.trackingNumber, `%${term}%`),
+          )
+        : undefined;
+
+      const where =
+        statusFilter && search
+          ? and(statusFilter, search)
+          : (statusFilter ?? search);
+
+      const limit = Math.min(Math.max(query.limit ?? 50, 1), 200);
+      const offset = Math.max(query.offset ?? 0, 0);
+
+      // Total is of the *filtered* set, so the pager reflects the current view.
+      const [totalRow] = await db
+        .select({ n: count() })
+        .from(orders)
+        .where(where);
+      const total = Number(totalRow?.n ?? 0);
+
+      const rows = await db
+        .select()
+        .from(orders)
+        .where(where)
+        .orderBy(desc(orders.createdAt))
+        .limit(limit)
+        .offset(offset);
 
       const ids = rows.map((o) => o.id);
       const counts = ids.length
@@ -184,20 +212,25 @@ export const ordersRoutes = new Elysia({
         : [];
       const countBy = new Map(counts.map((c) => [c.orderId, Number(c.n)]));
 
-      return rows.map((o) => ({
-        id: o.id,
-        status: o.status,
-        fulfillmentStatus: o.fulfillmentStatus,
-        email: o.email,
-        currency: o.currency,
-        totalCents: o.totalCents,
-        itemCount: countBy.get(o.id) ?? 0,
-        shipCountry: o.shipCountry,
-        shippingRateName: o.shippingRateName,
-        trackingNumber: o.trackingNumber,
-        createdAt: o.createdAt.toISOString(),
-        paidAt: iso(o.paidAt),
-      }));
+      return {
+        orders: rows.map((o) => ({
+          id: o.id,
+          status: o.status,
+          fulfillmentStatus: o.fulfillmentStatus,
+          email: o.email,
+          currency: o.currency,
+          totalCents: o.totalCents,
+          itemCount: countBy.get(o.id) ?? 0,
+          shipCountry: o.shipCountry,
+          shippingRateName: o.shippingRateName,
+          trackingNumber: o.trackingNumber,
+          createdAt: o.createdAt.toISOString(),
+          paidAt: iso(o.paidAt),
+        })),
+        total,
+        limit,
+        offset,
+      };
     },
     {
       beforeHandle: async ({ user, status }) => {
@@ -207,13 +240,23 @@ export const ordersRoutes = new Elysia({
       },
       query: t.Object({
         status: t.Optional(t.Union([t.Literal("paid"), t.Literal("all")])),
+        /** Matches email, order id, or tracking number. */
+        q: t.Optional(t.String()),
+        limit: t.Optional(t.Integer({ minimum: 1, maximum: 200 })),
+        offset: t.Optional(t.Integer({ minimum: 0 })),
       }),
       response: {
-        200: t.Array(OrderSummary),
+        200: t.Object({
+          orders: t.Array(OrderSummary),
+          /** Total matching the current filters, for paging. */
+          total: Int,
+          limit: Int,
+          offset: Int,
+        }),
         401: Unauthorized,
         403: Forbidden,
       },
-      detail: { summary: "List orders (admin)" },
+      detail: { summary: "List orders, searchable and paged (admin)" },
     },
   )
   .get(

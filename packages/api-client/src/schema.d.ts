@@ -298,7 +298,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List orders (admin) */
+        /** List orders, searchable and paged (admin) */
         get: operations["getAdminOrders"];
         put?: never;
         post?: never;
@@ -2205,6 +2205,9 @@ export interface operations {
         parameters: {
             query?: {
                 status?: "paid" | "all";
+                q?: string;
+                limit?: string | number;
+                offset?: string | number;
             };
             header?: never;
             path?: never;
@@ -2219,20 +2222,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        id: string;
-                        status: string;
-                        fulfillmentStatus: string;
-                        email: (string | null) | null;
-                        currency: string;
-                        totalCents: (number | null) | null;
-                        itemCount: number;
-                        shipCountry: (string | null) | null;
-                        shippingRateName: (string | null) | null;
-                        trackingNumber: (string | null) | null;
-                        /** Format: date-time */
-                        createdAt: string;
-                        paidAt: (string | null) | null;
-                    }[];
+                        orders: {
+                            id: string;
+                            status: string;
+                            fulfillmentStatus: string;
+                            email: (string | null) | null;
+                            currency: string;
+                            totalCents: (number | null) | null;
+                            itemCount: number;
+                            shipCountry: (string | null) | null;
+                            shippingRateName: (string | null) | null;
+                            trackingNumber: (string | null) | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            paidAt: (string | null) | null;
+                        }[];
+                        total: number;
+                        limit: number;
+                        offset: number;
+                    };
                 };
             };
             /** @description Response for status 401 */

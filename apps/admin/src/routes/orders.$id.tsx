@@ -102,7 +102,7 @@ function OrderDetail() {
 
       <div className="flex flex-wrap items-center gap-3">
         <Heading level={2} size={3}>
-          Order
+          Order {order.id.slice(-8).toUpperCase()}
         </Heading>
         <span className="font-mono text-sm text-muted">{order.id}</span>
         <Badge variant={order.status === "paid" ? "success" : "neutral"}>

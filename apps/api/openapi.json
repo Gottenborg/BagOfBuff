@@ -5490,7 +5490,7 @@
         "tags": [
           "Orders (admin)"
         ],
-        "summary": "List orders (admin)",
+        "summary": "List orders, searchable and paged (admin)",
         "parameters": [
           {
             "name": "status",
@@ -5503,6 +5503,54 @@
                 "all"
               ]
             }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "minimum": 1,
+              "maximum": 200,
+              "anyOf": [
+                {
+                  "format": "integer",
+                  "default": 0,
+                  "type": "string"
+                },
+                {
+                  "minimum": 1,
+                  "maximum": 200,
+                  "type": "integer"
+                }
+              ]
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "anyOf": [
+                {
+                  "format": "integer",
+                  "default": 0,
+                  "type": "string"
+                },
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              ]
+            }
           }
         ],
         "responses": {
@@ -5511,110 +5559,130 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "id",
-                      "status",
-                      "fulfillmentStatus",
-                      "email",
-                      "currency",
-                      "totalCents",
-                      "itemCount",
-                      "shipCountry",
-                      "shippingRateName",
-                      "trackingNumber",
-                      "createdAt",
-                      "paidAt"
-                    ],
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string"
-                      },
-                      "fulfillmentStatus": {
-                        "type": "string"
-                      },
-                      "email": {
-                        "nullable": true,
-                        "anyOf": [
-                          {
+                  "type": "object",
+                  "required": [
+                    "orders",
+                    "total",
+                    "limit",
+                    "offset"
+                  ],
+                  "properties": {
+                    "orders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "status",
+                          "fulfillmentStatus",
+                          "email",
+                          "currency",
+                          "totalCents",
+                          "itemCount",
+                          "shipCountry",
+                          "shippingRateName",
+                          "trackingNumber",
+                          "createdAt",
+                          "paidAt"
+                        ],
+                        "properties": {
+                          "id": {
                             "type": "string"
                           },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "currency": {
-                        "type": "string"
-                      },
-                      "totalCents": {
-                        "nullable": true,
-                        "anyOf": [
-                          {
+                          "status": {
+                            "type": "string"
+                          },
+                          "fulfillmentStatus": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "totalCents": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "itemCount": {
                             "type": "number"
                           },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "itemCount": {
-                        "type": "number"
-                      },
-                      "shipCountry": {
-                        "nullable": true,
-                        "anyOf": [
-                          {
-                            "type": "string"
+                          "shipCountry": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "shippingRateName": {
-                        "nullable": true,
-                        "anyOf": [
-                          {
-                            "type": "string"
+                          "shippingRateName": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "trackingNumber": {
-                        "nullable": true,
-                        "anyOf": [
-                          {
-                            "type": "string"
+                          "trackingNumber": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "createdAt": {
-                        "format": "date-time",
-                        "type": "string"
-                      },
-                      "paidAt": {
-                        "nullable": true,
-                        "anyOf": [
-                          {
+                          "createdAt": {
                             "format": "date-time",
                             "type": "string"
                           },
-                          {
-                            "type": "null"
+                          "paidAt": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "format": "date-time",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
-                        ]
+                        }
                       }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "limit": {
+                      "type": "number"
+                    },
+                    "offset": {
+                      "type": "number"
                     }
                   }
                 }
