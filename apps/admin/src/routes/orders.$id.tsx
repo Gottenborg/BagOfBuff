@@ -13,6 +13,7 @@ import {
   Text,
 } from "@repo/ui";
 import { AdminShell } from "../components/admin-shell";
+import { OrderActions } from "../components/order-actions";
 import { OrderHistory } from "../components/order-history";
 import { RefundPanel } from "../components/refund-panel";
 import { apiErrorMessage } from "../lib/errors";
@@ -302,6 +303,14 @@ function OrderDetail() {
       <RefundPanel
         order={order}
         onRefunded={() => {
+          queryClient.invalidateQueries({ queryKey: ["order", id] });
+          queryClient.invalidateQueries({ queryKey: ["orders"] });
+        }}
+      />
+
+      <OrderActions
+        order={order}
+        onChanged={() => {
           queryClient.invalidateQueries({ queryKey: ["order", id] });
           queryClient.invalidateQueries({ queryKey: ["orders"] });
         }}
