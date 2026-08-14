@@ -90,13 +90,11 @@ Certificates issue automatically once DNS resolves (usually minutes). Check with
 
 ## 5. Post-deploy wiring
 
-- **Stripe webhook** → Dashboard → Developers → Webhooks → add
-  `https://api.bagofbuff.com/checkout/webhook`, listening for:
-  `checkout.session.completed`, `checkout.session.expired`, `invoice.paid`,
-  `invoice.payment_failed`, `customer.subscription.updated`,
-  `customer.subscription.deleted`. Put the signing secret it gives you into
-  `STRIPE_WEBHOOK_SECRET` (step 2).
-- **Stripe Tax** → enable it and set an origin address, or VAT won't calculate.
+- **Stripe** → keys, the webhook endpoint and its event list, and Stripe Tax
+  registrations: see [docs/stripe.md](./stripe.md), which is the single
+  up-to-date list (the event list grows as features land, and a missing event
+  fails silently). Verify a key before deploying with
+  `cd apps/api && STRIPE_SECRET_KEY="sk_…" bun run stripe:check`.
 - **Resend** → verify the `bagofbuff.com` sending domain (add its DKIM records to
   DNS) so order/subscription emails deliver.
 - **CORS** → `fly.api.toml` already allows the three production origins; if you

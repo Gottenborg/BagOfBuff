@@ -12,6 +12,12 @@ primary_region = "fra"
   # set separately with `fly secrets set --app bagofbuff-api …`.
   SUPABASE_URL = "https://sumxigmxbtickbfkzrxf.supabase.co"
   CORS_ORIGINS = "https://bagofbuff.com,https://www.bagofbuff.com,https://admin.bagofbuff.com,https://bagofbuff-shop.fly.dev,https://bagofbuff-admin.fly.dev,https://bagofbuff-shop.pages.dev"
+  # Where Stripe sends the buyer after the hosted checkout. These MUST point at
+  # the live storefront: the defaults in lib/env are localhost, which would send
+  # every real customer to a dead page after paying. Switch to
+  # https://bagofbuff.com once the custom domain's DNS + cert are in place.
+  CHECKOUT_SUCCESS_URL = "https://bagofbuff-shop.fly.dev/checkout/success?session_id={CHECKOUT_SESSION_ID}"
+  CHECKOUT_CANCEL_URL = "https://bagofbuff-shop.fly.dev/checkout"
 
 [http_service]
   internal_port = 3001

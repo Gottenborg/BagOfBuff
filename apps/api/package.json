@@ -16,6 +16,7 @@
     "db:push": "drizzle-kit push",
     "db:seed": "bun src/db/seed.ts",
     "db:check": "bun scripts/check-db.ts",
+    "stripe:check": "bun scripts/check-stripe.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
