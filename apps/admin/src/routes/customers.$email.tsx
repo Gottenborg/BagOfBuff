@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { Badge, Card, CardContent, Heading, Loading, Text } from "@repo/ui";
 import { AdminShell } from "../components/admin-shell";
+import { DataRights } from "../components/data-rights";
 import { formatDate, formatPrice } from "../lib/format";
 import { api } from "../lib/api";
 
@@ -19,6 +20,7 @@ function CustomerRoute() {
 
 function CustomerDetail() {
   const { email } = Route.useParams();
+  const queryClient = useQueryClient();
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["customer", email],
@@ -190,6 +192,13 @@ function CustomerDetail() {
           </Card>
         </div>
       </div>
+      <DataRights
+        email={email}
+        onErased={() =>
+          queryClient.invalidateQueries({ queryKey: ["customer", email] })
+        }
+      />
+
     </>
   );
 }
