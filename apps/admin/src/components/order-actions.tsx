@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import type { paths } from "@repo/api-client";
 import { Button, Card, CardContent, Field, Heading, Input, Text } from "@repo/ui";
 import { apiErrorMessage } from "../lib/errors";
@@ -88,6 +89,31 @@ export function OrderActions({
         <Heading level={3} size={4}>
           Actions
         </Heading>
+
+        {/* Documents */}
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to="/documents/$id"
+            params={{ id: order.id }}
+            search={{ type: "packing-slip" as const }}
+            className="text-sm font-semibold text-brand-strong hover:underline"
+          >
+            Packing slip →
+          </Link>
+          <Link
+            to="/documents/$id"
+            params={{ id: order.id }}
+            search={{ type: "invoice" as const }}
+            className="text-sm font-semibold text-brand-strong hover:underline"
+          >
+            Invoice{order.invoice ? ` ${order.invoice.number}` : ""} →
+          </Link>
+          {!order.invoice && (
+            <Text muted className="text-xs">
+              No invoice number issued yet
+            </Text>
+          )}
+        </div>
 
         {/* Resend confirmation */}
         <div className="space-y-2">

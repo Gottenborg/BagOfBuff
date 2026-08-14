@@ -460,3 +460,42 @@ export const orderEvents = pgTable("order_events", {
 ).enableRLS();
 
 export type OrderEvent = typeof orderEvents.$inferSelect;
+
+/**
+ * Issued invoices.
+ *
+ * A separate table because an invoice number is not a formatting of the order
+ * id: Danish bookkeeping law (bogføringsloven) requires an unbroken, sequential
+ * series, and the documentation must be retained for five years. Deriving the
+ * number from anything mutable, or from a filtered view of orders, produces
+ * gaps — and a gap is what an auditor asks about.
+ *
+ * The row also freezes the seller's own details as they were when issued: a
+ * company that later moves address must still be able to reproduce the invoice
+ * it actually sent.
+ */
+export const invoices = pgTable("invoices", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  /** Sequential, gapless, never reused. */
+  number: integer("number").notNull().unique(),
+  orderId: text("order_id")
+    .notNull()
+    .references(() => orders.id, { onDelete: "restrict" })
+    .unique(),
+  issuedAt: timestamp("issued_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  /** Seller identity at the moment of issue, so the document can be reproduced. */
+  sellerSnapshot: jsonb("seller_snapshot"),
+  /** Totals at the moment of issue; the order may be refunded later. */
+  currency: text("currency").notNull(),
+  subtotalCents: integer("subtotal_cents").notNull(),
+  shippingCents: integer("shipping_cents").notNull(),
+  taxCents: integer("tax_cents").notNull(),
+  totalCents: integer("total_cents").notNull(),
+  createdBy: text("created_by"),
+}).enableRLS();
+
+export type Invoice = typeof invoices.$inferSelect;

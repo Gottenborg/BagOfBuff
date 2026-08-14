@@ -4,6 +4,7 @@ import { db } from "../../db";
 import {
   orderItems,
   orders,
+  type Invoice,
   type Order,
   type OrderEvent,
   type OrderItem,
@@ -16,6 +17,13 @@ import {
 } from "./refunds.service";
 import { listOrderEvents, recordOrderEvent } from "./order-events.service";
 import { cancelOrder, resendConfirmation } from "./order-actions.service";
+import {
+  findInvoice,
+  formatInvoiceNumber,
+  issueInvoice,
+  seller,
+  sellerConfigured,
+} from "./invoices.service";
 
 const Unauthorized = t.Object({ message: t.String() });
 const Forbidden = t.Object({ message: t.String() });
@@ -73,6 +81,20 @@ const OrderEventModel = t.Object({
   createdAt: t.String({ format: "date-time" }),
 });
 
+const SellerModel = t.Object({
+  name: t.String(),
+  address: t.String(),
+  cvr: t.String(),
+  email: t.String(),
+  vatNumber: t.String(),
+});
+
+const InvoiceModel = t.Object({
+  number: t.String(),
+  issuedAt: t.String({ format: "date-time" }),
+  seller: SellerModel,
+});
+
 const OrderDetail = t.Object({
   id: t.String(),
   status: t.String(),
@@ -100,6 +122,12 @@ const OrderDetail = t.Object({
   refundedCents: Int,
   /** Append-only history, oldest first. */
   events: t.Array(OrderEventModel),
+  /** Present once an invoice has been issued for this order. */
+  invoice: t.Nullable(InvoiceModel),
+  /** The seller identity documents are printed with, for the packing slip. */
+  seller: SellerModel,
+  /** False when company details are unset, so the UI can say why. */
+  sellerConfigured: t.Boolean(),
   createdAt: t.String({ format: "date-time" }),
   paidAt: t.Nullable(t.String({ format: "date-time" })),
   shippedAt: t.Nullable(t.String({ format: "date-time" })),
@@ -129,6 +157,7 @@ function serializeDetail(
   items: OrderItem[],
   orderRefunds: { id: string; amountCents: number; currency: string; reason: string; note: string | null; status: string; createdAt: Date }[] = [],
   events: OrderEvent[] = [],
+  invoice: Invoice | null = null,
 ) {
   return {
     id: order.id,
@@ -171,6 +200,15 @@ function serializeDetail(
     refundedCents: orderRefunds
       .filter((r) => r.status !== "failed")
       .reduce((sum, r) => sum + r.amountCents, 0),
+    invoice: invoice
+      ? {
+          number: formatInvoiceNumber(invoice.number),
+          issuedAt: invoice.issuedAt.toISOString(),
+          seller: (invoice.sellerSnapshot as ReturnType<typeof seller> | null) ?? seller(),
+        }
+      : null,
+    seller: seller(),
+    sellerConfigured: sellerConfigured(),
     events: events.map((e) => ({
       id: e.id,
       type: e.type,
@@ -298,12 +336,13 @@ export const ordersRoutes = new Elysia({
         .where(eq(orders.id, params.id))
         .limit(1);
       if (!order) return status(404, { message: "Order not found" });
-      const [items, orderRefunds, events] = await Promise.all([
+      const [items, orderRefunds, events, invoice] = await Promise.all([
         db.select().from(orderItems).where(eq(orderItems.orderId, order.id)),
         listRefunds(order.id),
         listOrderEvents(order.id),
+        findInvoice(order.id),
       ]);
-      return serializeDetail(order, items, orderRefunds, events);
+      return serializeDetail(order, items, orderRefunds, events, invoice);
     },
     {
       beforeHandle: async ({ user, status }) => {
@@ -340,12 +379,13 @@ export const ordersRoutes = new Elysia({
         .from(orders)
         .where(eq(orders.id, params.id))
         .limit(1);
-      const [items, orderRefunds, events] = await Promise.all([
+      const [items, orderRefunds, events, invoice] = await Promise.all([
         db.select().from(orderItems).where(eq(orderItems.orderId, params.id)),
         listRefunds(params.id),
         listOrderEvents(params.id),
+        findInvoice(params.id),
       ]);
-      return serializeDetail(order!, items, orderRefunds, events);
+      return serializeDetail(order!, items, orderRefunds, events, invoice);
     },
     {
       beforeHandle: async ({ user, status }) => {
@@ -368,6 +408,42 @@ export const ordersRoutes = new Elysia({
         summary: "Refund an order, fully or partially (admin)",
         description:
           "Refunds through Stripe and records it. Omit `amountCents` to refund everything still outstanding; the remaining balance is computed from recorded refunds, so an order can never be over-refunded.",
+      },
+    },
+  )
+  .post(
+    "/:id/invoice",
+    async ({ params, user, status }) => {
+      const result = await issueInvoice({
+        orderId: params.id,
+        actor: user?.id ?? null,
+      });
+      if (!result.ok) return status(result.status, { message: result.message });
+      return {
+        number: formatInvoiceNumber(result.invoice.number),
+        issuedAt: result.invoice.issuedAt.toISOString(),
+        seller: (result.invoice.sellerSnapshot as ReturnType<typeof seller> | null) ?? seller(),
+      };
+    },
+    {
+      beforeHandle: async ({ user, status }) => {
+        if (!user) return status(401, { message: "Unauthorized" });
+        if (!(await isAdmin(user.id)))
+          return status(403, { message: "Forbidden" });
+      },
+      params: t.Object({ id: t.String() }),
+      response: {
+        200: InvoiceModel,
+        401: Unauthorized,
+        403: Forbidden,
+        404: NotFound,
+        409: Message,
+        503: Message,
+      },
+      detail: {
+        summary: "Issue the invoice for an order (admin)",
+        description:
+          "Idempotent: an order has at most one invoice, and pressing this again returns the existing one rather than burning a number. Numbers are sequential and gapless, as Danish bookkeeping law requires.",
       },
     },
   )
@@ -516,12 +592,13 @@ export const ordersRoutes = new Elysia({
         });
       }
 
-      const [items, orderRefunds, events] = await Promise.all([
+      const [items, orderRefunds, events, invoice] = await Promise.all([
         db.select().from(orderItems).where(eq(orderItems.orderId, updated!.id)),
         listRefunds(updated!.id),
         listOrderEvents(updated!.id),
+        findInvoice(updated!.id),
       ]);
-      return serializeDetail(updated!, items, orderRefunds, events);
+      return serializeDetail(updated!, items, orderRefunds, events, invoice);
     },
     {
       beforeHandle: async ({ user, status }) => {
