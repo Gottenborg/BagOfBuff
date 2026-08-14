@@ -6,7 +6,7 @@ import { AdminShell } from "../components/admin-shell";
 import { formatDate, formatPrice } from "../lib/format";
 import { api } from "../lib/api";
 
-export const Route = createFileRoute("/customers")({ component: CustomersRoute });
+export const Route = createFileRoute("/customers/")({ component: CustomersRoute });
 
 function CustomersRoute() {
   return (

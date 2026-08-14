@@ -8,7 +8,7 @@ import { apiErrorMessage } from "../lib/errors";
 import { formatDate, formatPrice } from "../lib/format";
 import { api } from "../lib/api";
 
-export const Route = createFileRoute("/orders")({ component: OrdersRoute });
+export const Route = createFileRoute("/orders/")({ component: OrdersRoute });
 
 function OrdersRoute() {
   return (
