@@ -15,10 +15,12 @@ import {
   refundOrder,
 } from "./refunds.service";
 import { listOrderEvents, recordOrderEvent } from "./order-events.service";
+import { cancelOrder, resendConfirmation } from "./order-actions.service";
 
 const Unauthorized = t.Object({ message: t.String() });
 const Forbidden = t.Object({ message: t.String() });
 const NotFound = t.Object({ message: t.String() });
+const Message = t.Object({ message: t.String() });
 const Int = t.Number();
 
 /** Fulfillment workflow states, in order. */
@@ -367,6 +369,82 @@ export const ordersRoutes = new Elysia({
         description:
           "Refunds through Stripe and records it. Omit `amountCents` to refund everything still outstanding; the remaining balance is computed from recorded refunds, so an order can never be over-refunded.",
       },
+    },
+  )
+  .post(
+    "/:id/cancel",
+    async ({ params, body, user, status }) => {
+      const result = await cancelOrder({
+        orderId: params.id,
+        refund: body.refund ?? true,
+        restock: body.restock ?? true,
+        reason: body.reason ?? null,
+        actor: user?.id ?? null,
+      });
+      if (!result.ok) return status(result.status, { message: result.message });
+      return { message: result.message };
+    },
+    {
+      beforeHandle: async ({ user, status }) => {
+        if (!user) return status(401, { message: "Unauthorized" });
+        if (!(await isAdmin(user.id)))
+          return status(403, { message: "Forbidden" });
+      },
+      params: t.Object({ id: t.String() }),
+      body: t.Object({
+        /** Return the money too. Defaults on, since a cancelled paid order owes it. */
+        refund: t.Optional(t.Boolean()),
+        restock: t.Optional(t.Boolean()),
+        reason: t.Optional(t.Nullable(t.String())),
+      }),
+      response: {
+        200: Message,
+        400: Message,
+        401: Unauthorized,
+        403: Forbidden,
+        404: NotFound,
+        409: Message,
+        503: Message,
+      },
+      detail: {
+        summary: "Cancel an order, optionally refunding it (admin)",
+        description:
+          "Refuses once the order has shipped — that case is a return, refunded against a real shipment, not a cancellation.",
+      },
+    },
+  )
+  .post(
+    "/:id/resend-confirmation",
+    async ({ params, body, user, status }) => {
+      const result = await resendConfirmation({
+        orderId: params.id,
+        email: body.email ?? null,
+        actor: user?.id ?? null,
+      });
+      if (!result.ok) return status(result.status, { message: result.message });
+      return { message: result.message };
+    },
+    {
+      beforeHandle: async ({ user, status }) => {
+        if (!user) return status(401, { message: "Unauthorized" });
+        if (!(await isAdmin(user.id)))
+          return status(403, { message: "Forbidden" });
+      },
+      params: t.Object({ id: t.String() }),
+      body: t.Object({
+        /** Corrects the address on the order as well, when the original was wrong. */
+        email: t.Optional(t.Nullable(t.String({ format: "email" }))),
+      }),
+      response: {
+        200: Message,
+        400: Message,
+        401: Unauthorized,
+        403: Forbidden,
+        404: NotFound,
+        409: Message,
+        503: Message,
+      },
+      detail: { summary: "Send the order confirmation email again (admin)" },
     },
   )
   .patch(

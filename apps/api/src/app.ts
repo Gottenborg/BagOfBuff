@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { db } from "./db";
 import { env } from "./lib/env";
+import { adminsRoutes } from "./modules/auth/admins.routes";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { checkoutRoutes } from "./modules/checkout/checkout.routes";
 import { customersRoutes } from "./modules/customers/customers.routes";
@@ -95,6 +96,7 @@ export const app = new Elysia()
     },
   )
   .use(authRoutes)
+  .use(adminsRoutes)
   .use(productsRoutes)
   .use(shippingRoutes)
   .use(checkoutRoutes)

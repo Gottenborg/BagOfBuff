@@ -20,6 +20,7 @@ export const ORDER_EVENT_TYPES = [
   "order.paid",
   "order.expired",
   "order.canceled",
+  "order.email_changed",
   "fulfillment.changed",
   "tracking.changed",
   "refund.requested",
