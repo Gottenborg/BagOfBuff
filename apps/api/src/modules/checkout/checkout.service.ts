@@ -12,7 +12,7 @@ import { sendOrderConfirmation } from "../../lib/email";
 import { currencyForCountry } from "../../lib/currency";
 import { pricesForProducts, resolvePrice } from "../products/prices";
 import { env } from "../../lib/env";
-import { getStripe } from "../../lib/stripe";
+import { checkoutConfigProblem, getStripe, isLiveMode } from "../../lib/stripe";
 import {
   computeOptions,
   normalizeCountry,
@@ -55,6 +55,15 @@ export async function createCheckoutSession(
   const stripe = getStripe();
   if (!stripe) {
     return { ok: false, status: 503, message: "Checkout is not configured" };
+  }
+
+  // Refuse to take real money into a misconfigured redirect. In test mode this
+  // is only a warning (logged at boot), because localhost is where test-mode
+  // checkouts are supposed to land.
+  const configProblem = checkoutConfigProblem();
+  if (configProblem && isLiveMode()) {
+    console.error("Refusing live checkout:", configProblem);
+    return { ok: false, status: 503, message: "Checkout is misconfigured" };
   }
 
   if (input.items.length === 0) {
