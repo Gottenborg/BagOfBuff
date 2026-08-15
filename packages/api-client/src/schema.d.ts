@@ -170,6 +170,30 @@ export interface paths {
         patch: operations["patchProductsImagesByImageId"];
         trace?: never;
     };
+    "/admin/stock/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stock movements for a product (admin)
+         * @description Newest first, with a reconciliation: `unexplained` is non-zero when the balance was changed outside the ledger (a direct UPDATE, or movements predating it).
+         */
+        get: operations["getAdminStockById"];
+        put?: never;
+        /**
+         * Record a stock movement (admin)
+         * @description Receiving a delivery, correcting a count, or writing off damage. Sales and returns are recorded automatically by the order flow.
+         */
+        post: operations["postAdminStockById"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/shipping/quote": {
         parameters: {
             query?: never;
@@ -1601,6 +1625,156 @@ export interface operations {
                         url: string;
                         alt: string;
                         position: number;
+                    };
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 404 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getAdminStockById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        stock: number;
+                        ledgerTotal: number;
+                        unexplained: number;
+                        movements: {
+                            id: string;
+                            delta: number;
+                            balanceAfter: number;
+                            reason: string;
+                            note: (string | null) | null;
+                            orderId: (string | null) | null;
+                            actor: string;
+                            actorEmail: (string | null) | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Response for status 401 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Response for status 403 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    postAdminStockById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    delta: string | number;
+                    /** @enum {string} */
+                    reason: "received" | "count" | "damaged" | "adjustment";
+                    note?: (string | null) | null;
+                };
+                "application/x-www-form-urlencoded": {
+                    delta: string | number;
+                    /** @enum {string} */
+                    reason: "received" | "count" | "damaged" | "adjustment";
+                    note?: (string | null) | null;
+                };
+                "multipart/form-data": {
+                    delta: string | number;
+                    /** @enum {string} */
+                    reason: "received" | "count" | "damaged" | "adjustment";
+                    note?: (string | null) | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Response for status 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        stock: number;
+                        delta: number;
+                    };
+                };
+            };
+            /** @description Response for status 400 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
                     };
                 };
             };

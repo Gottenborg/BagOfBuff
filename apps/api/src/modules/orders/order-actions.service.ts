@@ -4,6 +4,7 @@ import { orderItems, orders, products, type Order } from "../../db/schema";
 import { isEmailConfigured, sendOrderConfirmation } from "../../lib/email";
 import { recordOrderEvent } from "./order-events.service";
 import { refundOrder, refundedTotal } from "./refunds.service";
+import { moveStock } from "../products/stock.service";
 
 /**
  * Order actions that aren't fulfillment or refunding: cancelling, and sending
@@ -109,13 +110,13 @@ async function restockOrder(order: Order): Promise<void> {
     .where(eq(orderItems.orderId, order.id));
   for (const item of items) {
     if (!item.productId) continue;
-    await db
-      .update(products)
-      .set({
-        stock: sql`${products.stock} + ${item.quantity}`,
-        updatedAt: new Date(),
-      })
-      .where(eq(products.id, item.productId));
+    await moveStock({
+      productId: item.productId,
+      delta: item.quantity,
+      reason: "return",
+      orderId: order.id,
+      note: item.name,
+    });
   }
 }
 

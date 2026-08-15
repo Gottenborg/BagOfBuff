@@ -3003,6 +3003,410 @@
         "operationId": "deleteProductsImagesByImageId"
       }
     },
+    "/admin/stock/{id}": {
+      "get": {
+        "tags": [
+          "Stock (admin)"
+        ],
+        "summary": "Stock movements for a product (admin)",
+        "description": "Newest first, with a reconciliation: `unexplained` is non-zero when the balance was changed outside the ledger (a direct UPDATE, or movements predating it).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "stock",
+                    "ledgerTotal",
+                    "unexplained",
+                    "movements"
+                  ],
+                  "properties": {
+                    "stock": {
+                      "type": "number"
+                    },
+                    "ledgerTotal": {
+                      "type": "number"
+                    },
+                    "unexplained": {
+                      "type": "number"
+                    },
+                    "movements": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "delta",
+                          "balanceAfter",
+                          "reason",
+                          "note",
+                          "orderId",
+                          "actor",
+                          "actorEmail",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "delta": {
+                            "type": "number"
+                          },
+                          "balanceAfter": {
+                            "type": "number"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "orderId": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "actor": {
+                            "type": "string"
+                          },
+                          "actorEmail": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "createdAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Response for status 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getAdminStockById"
+      },
+      "post": {
+        "tags": [
+          "Stock (admin)"
+        ],
+        "summary": "Record a stock movement (admin)",
+        "description": "Receiving a delivery, correcting a count, or writing off damage. Sales and returns are recorded automatically by the order flow.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "delta",
+                  "reason"
+                ],
+                "properties": {
+                  "delta": {
+                    "anyOf": [
+                      {
+                        "format": "integer",
+                        "default": 0,
+                        "type": "string"
+                      },
+                      {
+                        "type": "integer"
+                      }
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "enum": [
+                      "received",
+                      "count",
+                      "damaged",
+                      "adjustment"
+                    ]
+                  },
+                  "note": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "delta",
+                  "reason"
+                ],
+                "properties": {
+                  "delta": {
+                    "anyOf": [
+                      {
+                        "format": "integer",
+                        "default": 0,
+                        "type": "string"
+                      },
+                      {
+                        "type": "integer"
+                      }
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "enum": [
+                      "received",
+                      "count",
+                      "damaged",
+                      "adjustment"
+                    ]
+                  },
+                  "note": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "delta",
+                  "reason"
+                ],
+                "properties": {
+                  "delta": {
+                    "anyOf": [
+                      {
+                        "format": "integer",
+                        "default": 0,
+                        "type": "string"
+                      },
+                      {
+                        "type": "integer"
+                      }
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "enum": [
+                      "received",
+                      "count",
+                      "damaged",
+                      "adjustment"
+                    ]
+                  },
+                  "note": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "stock",
+                    "delta"
+                  ],
+                  "properties": {
+                    "stock": {
+                      "type": "number"
+                    },
+                    "delta": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response for status 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Response for status 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Response for status 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postAdminStockById"
+      }
+    },
     "/shipping/quote": {
       "post": {
         "tags": [

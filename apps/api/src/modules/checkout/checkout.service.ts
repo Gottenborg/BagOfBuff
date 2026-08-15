@@ -12,6 +12,7 @@ import { sendOrderConfirmation } from "../../lib/email";
 import { currencyForCountry } from "../../lib/currency";
 import { rateForCountry, vatFromGross } from "../../lib/vat";
 import { recordOrderEvent } from "../orders/order-events.service";
+import { moveStock } from "../products/stock.service";
 import { pricesForProducts, resolvePrice } from "../products/prices";
 import { env } from "../../lib/env";
 import { checkoutConfigProblem, getStripe, isLiveMode } from "../../lib/stripe";
@@ -357,17 +358,16 @@ export async function fulfillCheckoutSession(
     .from(orderItems)
     .where(eq(orderItems.orderId, orderId));
 
-  // Decrement stock for each purchased product. Clamped at zero so a race can't
-  // drive inventory negative.
+  // Decrement stock through the ledger, so the balance stays explainable.
   for (const item of items) {
     if (!item.productId) continue;
-    await db
-      .update(products)
-      .set({
-        stock: sql`GREATEST(${products.stock} - ${item.quantity}, 0)`,
-        updatedAt: new Date(),
-      })
-      .where(eq(products.id, item.productId));
+    await moveStock({
+      productId: item.productId,
+      delta: -item.quantity,
+      reason: "sale",
+      orderId,
+      note: item.name,
+    });
   }
 
   await recordOrderEvent({

@@ -17,6 +17,12 @@ import {
   type Currency,
 } from "../../lib/currency";
 import { authPlugin, isAdmin } from "../auth/auth.plugin";
+import {
+  MANUAL_STOCK_REASONS,
+  listMovements,
+  moveStock,
+  reconcile,
+} from "./stock.service";
 import { hasPriceIn, pricesForProducts, resolvePrice } from "./prices";
 
 /** Omnibus window: lowest price must reflect the prior 30 days. */
@@ -431,9 +437,29 @@ export const productsRoutes = new Elysia({
   )
   .patch(
     "/:id",
-    async ({ params, body, status }) => {
+    async ({ params, body, user, status }) => {
       try {
-        const { prices, ...fields } = body;
+        const { prices, stock: requestedStock, ...fields } = body;
+
+        // A stock number typed into the product form is a correction, and has
+        // to be recorded as one — otherwise the ledger stops explaining the
+        // balance the moment anyone edits it here.
+        if (requestedStock !== undefined) {
+          const [before] = await db
+            .select({ stock: products.stock })
+            .from(products)
+            .where(eq(products.id, params.id))
+            .limit(1);
+          if (before && before.stock !== requestedStock) {
+            await moveStock({
+              productId: params.id,
+              delta: requestedStock - before.stock,
+              reason: "count",
+              note: "Set directly on the product form",
+              actor: user?.id ?? null,
+            });
+          }
+        }
 
         const base = prices?.length
           ? await writePrices(params.id, prices)

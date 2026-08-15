@@ -2,6 +2,7 @@ import type Stripe from "stripe";
 import { eq, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { recordOrderEvent } from "./order-events.service";
+import { moveStock } from "../products/stock.service";
 import {
   orderItems,
   orders,
@@ -225,13 +226,13 @@ async function applyRefundToOrder(
       .where(eq(orderItems.orderId, order.id));
     for (const item of items) {
       if (!item.productId) continue;
-      await db
-        .update(products)
-        .set({
-          stock: sql`${products.stock} + ${item.quantity}`,
-          updatedAt: new Date(),
-        })
-        .where(eq(products.id, item.productId));
+      await moveStock({
+        productId: item.productId,
+        delta: item.quantity,
+        reason: "return",
+        orderId: order.id,
+        note: item.name,
+      });
     }
   }
 }
