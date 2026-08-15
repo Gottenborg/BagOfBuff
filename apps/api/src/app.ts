@@ -10,6 +10,7 @@ import { checkoutRoutes } from "./modules/checkout/checkout.routes";
 import { customersRoutes } from "./modules/customers/customers.routes";
 import { ordersRoutes } from "./modules/orders/orders.routes";
 import { productsRoutes } from "./modules/products/products.routes";
+import { stockRoutes } from "./modules/products/stock.routes";
 import { taxRoutes } from "./modules/orders/tax.routes";
 import { shippingRoutes } from "./modules/shipping/shipping.routes";
 import { subscriptionsRoutes } from "./modules/subscriptions/subscriptions.routes";
@@ -98,6 +99,7 @@ export const app = new Elysia()
   .use(authRoutes)
   .use(adminsRoutes)
   .use(productsRoutes)
+  .use(stockRoutes)
   .use(shippingRoutes)
   .use(checkoutRoutes)
   .use(ordersRoutes)

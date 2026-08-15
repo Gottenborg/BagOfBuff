@@ -15,6 +15,7 @@ import {
 } from "@repo/ui";
 import { AdminShell } from "../components/admin-shell";
 import { ProductImages } from "../components/product-images";
+import { StockPanel } from "../components/stock-panel";
 import { apiErrorMessage } from "../lib/errors";
 import { formatPrice } from "../lib/format";
 import { api } from "../lib/api";
@@ -570,6 +571,8 @@ function EditProductForm({
           onChanged={onRefresh}
         />
       </div>
+
+      <StockPanel productId={product.id} />
 
       <div className="mt-4 flex items-center gap-2">
         <Button type="submit" size="sm" disabled={save.isPending}>

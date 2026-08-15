@@ -499,3 +499,46 @@ export const invoices = pgTable("invoices", {
 }).enableRLS();
 
 export type Invoice = typeof invoices.$inferSelect;
+
+/**
+ * Stock movements: every change to a product's quantity, and why.
+ *
+ * The stored `products.stock` is the current balance, which is all the shop
+ * needs to sell — but a balance alone cannot answer "we counted 40 and the
+ * system says 37, what happened?". Without a ledger the honest answer is
+ * always "we don't know", and the only remedy is to overwrite the number and
+ * lose the discrepancy.
+ *
+ * Every path that changes stock writes a row here: sales, returns, deliveries
+ * received, and manual corrections. Append-only — a mistaken movement is
+ * corrected by another movement, never by editing history.
+ */
+export const stockMovements = pgTable("stock_movements", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  productId: text("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  /** Signed: positive receives, negative removes. Never zero. */
+  delta: integer("delta").notNull(),
+  /** The balance immediately after this movement, for auditing drift. */
+  balanceAfter: integer("balance_after").notNull(),
+  /** Why it moved — see STOCK_REASONS. */
+  reason: text("reason").notNull(),
+  note: text("note"),
+  /** Set when the movement came from an order (sale, return). */
+  orderId: text("order_id").references(() => orders.id, {
+    onDelete: "set null",
+  }),
+  /** Admin user id, or "system" for order-driven movements. */
+  actor: text("actor").notNull().default("system"),
+  actorEmail: text("actor_email"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+},
+  (t) => [index("stock_movements_product_id_created_at_idx").on(t.productId, t.createdAt)],
+).enableRLS();
+
+export type StockMovement = typeof stockMovements.$inferSelect;
